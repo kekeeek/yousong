@@ -280,33 +280,34 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
 
 <script>
 // ══ CONFIG ══
-// Deezer via proxy CORS — marche sans clé, sans compte
-const PROXY = 'https://proxy.corsfix.com/?';
-const DZ = 'https://api.deezer.com';
+// iTunes Search API — CORS natif, pas de clé, previews MP3 30s gratuits
+const ITUNES = 'https://itunes.apple.com';
 
 // ══ STATE ══
 const audio = new Audio();
-audio.crossOrigin = 'anonymous';
 let queue = [], qIdx = 0, cur = null;
 let isPlaying = false, isShuffle = false, isRepeat = false;
 let liked = JSON.parse(localStorage.getItem('ys_liked') || '[]');
 let srchTimer = null;
 
 // ══ API ══
-async function dz(path) {
-  const res = await fetch(PROXY + DZ + path);
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  return res.json();
-}
-
 async function search(q, limit = 25) {
-  const data = await dz('/search/track?q=' + encodeURIComponent(q) + '&limit=' + limit);
-  return (data.data || []).filter(t => t.preview); // garder seulement ceux avec preview
+  const res = await fetch(`${ITUNES}/search?term=${encodeURIComponent(q)}&entity=song&limit=${limit}&country=fr`);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  return (data.results || []).filter(t => t.previewUrl);
 }
 
 async function getChart() {
-  const data = await dz('/chart/0/tracks?limit=20');
-  return (data.data || []).filter(t => t.preview);
+  // Top 20 iTunes France via RSS
+  const res = await fetch('https://itunes.apple.com/fr/rss/topsongs/limit=20/json');
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  const ids = (data.feed?.entry || []).map(e => e.id?.attributes?.['im:id']).filter(Boolean).join(',');
+  if (!ids) return [];
+  const res2 = await fetch(`${ITUNES}/lookup?id=${ids}&entity=song`);
+  const data2 = await res2.json();
+  return (data2.results || []).filter(t => t.previewUrl && t.kind === 'song');
 }
 
 // ══ PAGES ══
@@ -382,20 +383,21 @@ function renderList(songs, container) {
 }
 
 function mkRow(s, idx, arr) {
-  const isCur = cur && cur.id === s.id;
+  const isCur = cur && cur.trackId === s.trackId;
   const row = document.createElement('div');
   row.className = 'srow' + (isCur ? ' cur' : '');
-  row.id = 'row-' + s.id;
-  const img = s.album && s.album.cover_medium ? s.album.cover_medium : '';
-  const artist = s.artist && s.artist.name ? s.artist.name : '—';
-  const dur = fmtTime(s.duration);
+  row.id = 'row-' + s.trackId;
+  const img = s.artworkUrl100 || s.artworkUrl60 || '';
+  const artist = s.artistName || '—';
+  const title = s.trackName || '?';
+  const dur = fmtTime(Math.floor((s.trackTimeMillis || 0) / 1000));
   row.innerHTML = `
-    ${img ? `<img class="sthumb" src="${esc(img)}" alt="" onerror="this.style.display='none'">` : `<div class="sthumb-ph" style="background:${grad(s.id)}">🎵</div>`}
+    ${img ? `<img class="sthumb" src="${esc(img)}" alt="" onerror="this.style.display='none'">` : `<div class="sthumb-ph" style="background:${grad(s.trackId)}">🎵</div>`}
     <div class="sinfo">
-      <div class="stitle">${esc(s.title || s.title_short || '?')}</div>
+      <div class="stitle">${esc(title)}</div>
       <div class="sartist">${esc(artist)}</div>
     </div>
-    <div class="sbars ${isCur && isPlaying ? 'on' : ''}" id="bars-${s.id}"><span></span><span></span><span></span><span></span></div>
+    <div class="sbars ${isCur && isPlaying ? 'on' : ''}" id="bars-${s.trackId}"><span></span><span></span><span></span><span></span></div>
     <span class="sdur">${dur}</span>
   `;
   row.addEventListener('click', () => { queue = arr; qIdx = idx; play(s); });
@@ -404,16 +406,16 @@ function mkRow(s, idx, arr) {
 
 // ══ PLAYER ══
 async function play(s) {
-  if (!s || !s.preview) { toast('❌ Preview indisponible'); return; }
+  if (!s || !s.previewUrl) { toast('❌ Preview indisponible'); return; }
   cur = s;
   updateMini(); updateFull();
   try {
     audio.pause();
-    audio.src = s.preview; // Preview Deezer = 30s MP3, pas de CORS
+    audio.src = s.previewUrl;
     audio.volume = document.getElementById('vol-r').value / 100;
     await audio.play();
     isPlaying = true;
-    toast('▶️ ' + esc(s.title || ''));
+    toast('▶️ ' + esc(s.trackName || ''));
   } catch (e) {
     toast('❌ Erreur lecture');
     isPlaying = false;
@@ -465,9 +467,9 @@ function closeFP() { document.getElementById('full-p').classList.remove('open');
 function updateMini() {
   if (!cur) return;
   document.getElementById('mini-p').classList.add('show');
-  document.getElementById('mp-title').textContent = cur.title || cur.title_short || '—';
-  document.getElementById('mp-artist').textContent = cur.artist?.name || '—';
-  const img = cur.album?.cover_medium;
+  document.getElementById('mp-title').textContent = cur.trackName || '—';
+  document.getElementById('mp-artist').textContent = cur.artistName || '—';
+  const img = cur.artworkUrl100;
   const el = document.getElementById('mp-art');
   if (img) el.outerHTML = `<img class="mp-art" id="mp-art" src="${esc(img)}" alt="" onerror="this.outerHTML='<div class=mp-art-ph id=mp-art>🎵</div>'">`;
   else { el.className = 'mp-art-ph'; el.id = 'mp-art'; el.textContent = '🎵'; }
@@ -475,13 +477,14 @@ function updateMini() {
 
 function updateFull() {
   if (!cur) return;
-  document.getElementById('fp-name').textContent = cur.title || '—';
-  document.getElementById('fp-artist-lbl').textContent = cur.artist?.name || '—';
-  const img = cur.album?.cover_big || cur.album?.cover_medium;
+  document.getElementById('fp-name').textContent = cur.trackName || '—';
+  document.getElementById('fp-artist-lbl').textContent = cur.artistName || '—';
+  // iTunes artwork - remplacer 100x100 par 600x600
+  const img = (cur.artworkUrl100 || '').replace('100x100', '600x600');
   const el = document.getElementById('fp-art');
   if (img) el.outerHTML = `<img class="fp-art" id="fp-art" src="${esc(img)}" alt="">`;
   else { el.className = 'fp-art-ph'; el.id = 'fp-art'; el.textContent = '🎵'; }
-  document.getElementById('fp-like').classList.toggle('liked', liked.some(l => l.id === cur.id));
+  document.getElementById('fp-like').classList.toggle('liked', liked.some(l => l.trackId === cur.trackId));
 }
 
 function updIcons() {
@@ -497,7 +500,7 @@ function updIcons() {
 function updRows() {
   document.querySelectorAll('.srow').forEach(row => {
     const rid = row.id.replace('row-', '');
-    const isCur = cur && String(cur.id) === rid;
+    const isCur = cur && String(cur.trackId) === rid;
     row.classList.toggle('cur', isCur);
     const bars = document.getElementById('bars-' + rid);
     if (bars) bars.classList.toggle('on', isCur && isPlaying);
@@ -507,7 +510,7 @@ function updRows() {
 // ══ LIKE ══
 function toggleLike() {
   if (!cur) return;
-  const idx = liked.findIndex(l => l.id === cur.id);
+  const idx = liked.findIndex(l => l.trackId === cur.trackId);
   if (idx >= 0) { liked.splice(idx, 1); toast('💔 Retiré'); }
   else { liked.unshift({ ...cur }); toast('❤️ Ajouté aux likés'); }
   localStorage.setItem('ys_liked', JSON.stringify(liked));
@@ -522,30 +525,49 @@ function renderLiked() {
 }
 
 // ══ HOME ══
-const CHARTS_IDS = ['0', '1111142922', '1362526775'];
 const GENRES = ['rap', 'pop hits', 'rnb', 'afrobeats', 'rock classics', 'dancehall'];
 
 async function loadHome() {
-  // Trending = charts Deezer
+  // Trending = Top iTunes France
   try {
     const songs = await getChart();
     const wrap = document.getElementById('trending');
     wrap.innerHTML = '';
     songs.slice(0, 10).forEach((s, i) => {
-      const img = s.album?.cover_medium || '';
+      const img = (s.artworkUrl100 || '').replace('100x100', '300x300');
       const card = document.createElement('div');
       card.className = 'acard';
       card.innerHTML = `
-        ${img ? `<img class="acard-img" src="${esc(img)}" alt="" onerror="this.style.display='none'">` : `<div class="acard-img-ph" style="background:${grad(s.id)}">🎵</div>`}
-        <div class="acard-title">${esc(s.title || s.title_short || '')}</div>
-        <div class="acard-sub">${esc(s.artist?.name || '')}</div>
+        ${img ? `<img class="acard-img" src="${esc(img)}" alt="" onerror="this.style.display='none'">` : `<div class="acard-img-ph" style="background:${grad(s.trackId)}">🎵</div>`}
+        <div class="acard-title">${esc(s.trackName || '')}</div>
+        <div class="acard-sub">${esc(s.artistName || '')}</div>
       `;
       card.addEventListener('click', () => { queue = songs; qIdx = i; play(s); });
       wrap.appendChild(card);
     });
-  } catch (e) { document.getElementById('trending').innerHTML = '<div style="padding:20px;color:var(--w2);font-size:13px">Connexion requise</div>'; }
+  } catch (e) {
+    document.getElementById('trending').innerHTML = '<div style="padding:20px;color:var(--w2);font-size:13px">Chargement...</div>';
+    // Fallback : recherche générique
+    try {
+      const songs = await search('top hits 2024', 10);
+      const wrap = document.getElementById('trending');
+      wrap.innerHTML = '';
+      songs.forEach((s, i) => {
+        const img = (s.artworkUrl100 || '').replace('100x100', '300x300');
+        const card = document.createElement('div');
+        card.className = 'acard';
+        card.innerHTML = `
+          ${img ? `<img class="acard-img" src="${esc(img)}" alt="">` : `<div class="acard-img-ph" style="background:${grad(s.trackId)}">🎵</div>`}
+          <div class="acard-title">${esc(s.trackName || '')}</div>
+          <div class="acard-sub">${esc(s.artistName || '')}</div>
+        `;
+        card.addEventListener('click', () => { queue = songs; qIdx = i; play(s); });
+        wrap.appendChild(card);
+      });
+    } catch (e2) {}
+  }
 
-  // Discover = recherche aléatoire
+  // Discover
   try {
     const q = GENRES[Math.floor(Math.random() * GENRES.length)];
     const songs = await search(q, 10);

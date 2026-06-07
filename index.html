@@ -13,9 +13,12 @@ html,body{height:100%;background:var(--bg);color:var(--w);font-family:'DM Sans',
 #app{display:flex;flex-direction:column;height:100vh;height:100dvh;}
 #main{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:150px;}
 
+/* YT HIDDEN PLAYER */
+#yt-wrap{position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;pointer-events:none;}
+
 /* TOPBAR */
 .topbar{padding:calc(16px + env(safe-area-inset-top)) 18px 10px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;background:linear-gradient(var(--bg) 60%,transparent);}
-.logo{font-family:'Syne',sans-serif;font-size:22px;font-weight:900;background:linear-gradient(135deg,#a78bfa,#e040fb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.logo{font-family:'Syne',sans-serif;font-size:24px;font-weight:900;background:linear-gradient(135deg,#a78bfa,#e040fb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 
 /* SEARCH */
 .srch-wrap{padding:2px 16px 12px;}
@@ -122,13 +125,11 @@ html,body{height:100%;background:var(--bg);color:var(--w);font-family:'DM Sans',
 .fp-like{width:36px;height:36px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .fp-like svg{width:23px;height:23px;stroke:var(--w3);fill:none;stroke-width:2;transition:.2s;}
 .fp-like.liked svg{stroke:var(--acc2);fill:var(--acc2);}
-/* PROGRESS */
 .prog-wrap{margin-bottom:18px;}
 .prog-bar{width:100%;height:4px;background:var(--bg3);border-radius:4px;cursor:pointer;position:relative;}
 .prog-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--acc),var(--acc2));width:0%;transition:.25s linear;position:relative;}
 .prog-fill::after{content:'';position:absolute;right:-5px;top:-4px;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 0 8px rgba(124,77,255,.5);}
 .prog-times{display:flex;justify-content:space-between;margin-top:7px;font-size:11px;color:var(--w3);}
-/* CTRL */
 .fp-ctrl{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;}
 .cb{width:46px;height:46px;background:none;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:50%;}
 .cb svg{width:22px;height:22px;stroke:var(--w2);fill:none;stroke-width:1.8;transition:.2s;}
@@ -136,7 +137,6 @@ html,body{height:100%;background:var(--bg);color:var(--w);font-family:'DM Sans',
 .c-play{width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 22px rgba(124,77,255,.5);}
 .c-play:active{transform:scale(.93);}
 .c-play svg{width:26px;height:26px;fill:#fff;}
-/* VOL */
 .fp-vol{display:flex;align-items:center;gap:10px;}
 .vol-ico{background:none;border:none;cursor:pointer;}
 .vol-ico svg{width:16px;height:16px;stroke:var(--w3);fill:none;stroke-width:1.8;}
@@ -146,21 +146,19 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
 /* TOAST */
 #toast{position:fixed;bottom:calc(140px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(12px);background:rgba(26,26,46,.96);border:1px solid rgba(124,77,255,.3);padding:9px 20px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;transition:.3s;pointer-events:none;white-space:nowrap;z-index:9999;backdrop-filter:blur(12px);}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
-
-/* PREVIEW BADGE */
-.preview-badge{font-size:10px;background:rgba(224,64,251,.2);color:var(--acc2);padding:2px 7px;border-radius:8px;font-weight:700;margin-left:6px;vertical-align:middle;}
 </style>
 </head>
 <body>
+
+<!-- YouTube IFrame hidden -->
+<div id="yt-wrap"><div id="yt-player"></div></div>
+
 <div id="app">
   <div id="main">
 
     <!-- HOME -->
     <div id="page-home" class="page on">
-      <div class="topbar">
-        <div class="logo">YouSong</div>
-        <span class="preview-badge">preview 30s</span>
-      </div>
+      <div class="topbar"><div class="logo">YouSong</div></div>
       <div class="srch-wrap">
         <div class="srch-box">
           <svg class="srch-ico" viewBox="0 0 24 24" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -174,15 +172,15 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
       <div id="home-cnt">
         <div class="sec"><div class="sec-t">🎸 Genres</div></div>
         <div class="genre-row">
-          <button class="gpill" style="background:linear-gradient(135deg,#7c4dff,#e040fb)" onclick="sg('rap')">🎤 Rap</button>
-          <button class="gpill" style="background:linear-gradient(135deg,#ff6d00,#ff9800)" onclick="sg('pop')">🌟 Pop</button>
-          <button class="gpill" style="background:linear-gradient(135deg,#00acc1,#0097a7)" onclick="sg('rnb')">🎵 R&B</button>
+          <button class="gpill" style="background:linear-gradient(135deg,#7c4dff,#e040fb)" onclick="sg('rap français')">🎤 Rap FR</button>
+          <button class="gpill" style="background:linear-gradient(135deg,#ff6d00,#ff9800)" onclick="sg('pop hits 2024')">🌟 Pop</button>
+          <button class="gpill" style="background:linear-gradient(135deg,#00acc1,#0097a7)" onclick="sg('rnb soul')">🎵 R&B</button>
           <button class="gpill" style="background:linear-gradient(135deg,#e91e63,#c2185b)" onclick="sg('rock')">🎸 Rock</button>
           <button class="gpill" style="background:linear-gradient(135deg,#43a047,#2e7d32)" onclick="sg('afrobeats')">🥁 Afro</button>
-          <button class="gpill" style="background:linear-gradient(135deg,#5c6bc0,#3949ab)" onclick="sg('dancehall')">🌴 Dancehall</button>
-          <button class="gpill" style="background:linear-gradient(135deg,#f4511e,#bf360c)" onclick="sg('electro')">🔊 Electro</button>
+          <button class="gpill" style="background:linear-gradient(135deg,#5c6bc0,#3949ab)" onclick="sg('drill uk')">🔊 Drill</button>
+          <button class="gpill" style="background:linear-gradient(135deg,#f4511e,#bf360c)" onclick="sg('reggaeton')">🌴 Latino</button>
         </div>
-        <div class="sec" style="margin-top:22px"><div class="sec-t">🔥 Top Charts</div></div>
+        <div class="sec" style="margin-top:22px"><div class="sec-t">🔥 Tendances</div></div>
         <div class="hscroll" id="trending"></div>
         <div class="sec" style="margin-top:22px"><div class="sec-t">⚡ Découverte</div></div>
         <div class="sec" style="padding-top:0"><div class="slist" id="discover"></div></div>
@@ -270,7 +268,7 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
     </div>
     <div class="fp-vol">
       <button class="vol-ico"><svg viewBox="0 0 24 24" stroke-width="1.8"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/></svg></button>
-      <input type="range" class="vol" id="vol-r" min="0" max="100" value="80" oninput="audio.volume=this.value/100">
+      <input type="range" class="vol" id="vol-r" min="0" max="100" value="80" oninput="setVol(this.value)">
       <button class="vol-ico"><svg viewBox="0 0 24 24" stroke-width="1.8"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></button>
     </div>
   </div>
@@ -278,36 +276,72 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
 
 <div id="toast"></div>
 
+<!-- YouTube IFrame API -->
+<script src="https://www.youtube.com/iframe_api"></script>
 <script>
-// ══ CONFIG ══
-// iTunes Search API — CORS natif, pas de clé, previews MP3 30s gratuits
-const ITUNES = 'https://itunes.apple.com';
+// ══ YOUTUBE PLAYER ══
+let ytPlayer = null;
+let ytReady = false;
+let pendingVideoId = null;
+
+function onYouTubeIframeAPIReady() {
+  ytPlayer = new YT.Player('yt-player', {
+    height: '1', width: '1',
+    playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, iv_load_policy: 3, modestbranding: 1, rel: 0 },
+    events: {
+      onReady: () => {
+        ytReady = true;
+        if (pendingVideoId) { ytPlayer.loadVideoById(pendingVideoId); pendingVideoId = null; }
+      },
+      onStateChange: (e) => {
+        if (e.data === YT.PlayerState.PLAYING) {
+          isPlaying = true; updIcons(); updRows(); startProgLoop();
+        } else if (e.data === YT.PlayerState.PAUSED) {
+          isPlaying = false; updIcons(); updRows(); stopProgLoop();
+        } else if (e.data === YT.PlayerState.ENDED) {
+          stopProgLoop();
+          if (isRepeat) { ytPlayer.seekTo(0); ytPlayer.playVideo(); }
+          else next();
+        }
+      },
+      onError: () => { toast('❌ Vidéo non disponible, passage à la suivante...'); setTimeout(next, 1500); }
+    }
+  });
+}
 
 // ══ STATE ══
-const audio = new Audio();
 let queue = [], qIdx = 0, cur = null;
 let isPlaying = false, isShuffle = false, isRepeat = false;
 let liked = JSON.parse(localStorage.getItem('ys_liked') || '[]');
 let srchTimer = null;
+let progLoop = null;
 
-// ══ API ══
-async function search(q, limit = 25) {
+// ══ ITUNES SEARCH (pour les métadonnées + miniatures) ══
+const ITUNES = 'https://itunes.apple.com';
+
+async function itunesSearch(q, limit = 20) {
   const res = await fetch(`${ITUNES}/search?term=${encodeURIComponent(q)}&entity=song&limit=${limit}&country=fr`);
-  if (!res.ok) throw new Error('HTTP ' + res.status);
   const data = await res.json();
-  return (data.results || []).filter(t => t.previewUrl);
+  return (data.results || []).filter(t => t.trackName);
 }
 
-async function getChart() {
-  // Top 20 iTunes France via RSS
-  const res = await fetch('https://itunes.apple.com/fr/rss/topsongs/limit=20/json');
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const data = await res.json();
-  const ids = (data.feed?.entry || []).map(e => e.id?.attributes?.['im:id']).filter(Boolean).join(',');
-  if (!ids) return [];
-  const res2 = await fetch(`${ITUNES}/lookup?id=${ids}&entity=song`);
-  const data2 = await res2.json();
-  return (data2.results || []).filter(t => t.previewUrl && t.kind === 'song');
+// ══ YOUTUBE SEARCH (via noembed / oEmbed trick) ══
+async function getYTVideoId(title, artist) {
+  // On cherche sur YouTube via l'API de recherche publique
+  const q = encodeURIComponent(`${title} ${artist} official audio`);
+  const res = await fetch(`https://www.youtube.com/results?search_query=${q}`, {
+    headers: { 'User-Agent': 'Mozilla/5.0' }
+  });
+  // Fallback: construire l'ID à partir d'un service de recherche
+  // On utilise l'API YouTube Data v3 avec une clé publique limitée
+  // Alternative: utiliser l'API de suggestion YouTube
+  const url = `https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${q}`;
+  try {
+    const r2 = await fetch(`https://yt.lemnoslife.com/noKey/search?part=snippet&q=${q}&type=video&maxResults=1`);
+    const d2 = await r2.json();
+    if (d2.items && d2.items[0]) return d2.items[0].id.videoId;
+  } catch(e) {}
+  return null;
 }
 
 // ══ PAGES ══
@@ -319,7 +353,7 @@ function showPage(p) {
   if (p === 'liked') renderLiked();
 }
 
-// ══ SEARCH ══
+// ══ SEARCH UI ══
 const inp = document.getElementById('srch-inp');
 const clr = document.getElementById('srch-clr');
 inp.addEventListener('input', () => {
@@ -331,9 +365,9 @@ inp.addEventListener('input', () => {
 });
 clr.addEventListener('click', () => { inp.value = ''; clr.classList.remove('v'); hideSearch(); });
 
-document.getElementById('srch2-inp').addEventListener('input', function() {
-  const q = this.value.trim();
+document.getElementById('srch2-inp').addEventListener('input', function () {
   clearTimeout(srchTimer);
+  const q = this.value.trim();
   if (!q) { document.getElementById('explore-list').innerHTML = ''; return; }
   srchTimer = setTimeout(() => doSearchIn(q, 'explore-list'), 600);
 });
@@ -349,32 +383,24 @@ async function doSearch(q) {
   const list = document.getElementById('results-list');
   list.innerHTML = mkLoader();
   try {
-    const songs = await search(q);
+    const songs = await itunesSearch(q, 25);
     if (!songs.length) { list.innerHTML = mkEmpty('😕', 'Aucun résultat pour "' + esc(q) + '"'); return; }
     queue = songs; qIdx = 0;
     renderList(songs, list);
-  } catch (e) {
-    list.innerHTML = mkEmpty('⚠️', 'Erreur de connexion.<br>Vérifie ta connexion internet.');
-  }
+  } catch (e) { list.innerHTML = mkEmpty('⚠️', 'Erreur de connexion.'); }
 }
 
 async function doSearchIn(q, listId) {
   const list = document.getElementById(listId);
   list.innerHTML = mkLoader();
   try {
-    const songs = await search(q);
+    const songs = await itunesSearch(q, 20);
     if (!songs.length) { list.innerHTML = mkEmpty('😕', 'Aucun résultat'); return; }
     renderList(songs, list);
-  } catch (e) {
-    list.innerHTML = mkEmpty('⚠️', 'Erreur réseau');
-  }
+  } catch (e) { list.innerHTML = mkEmpty('⚠️', 'Erreur réseau'); }
 }
 
-async function sg(genre) {
-  inp.value = genre;
-  clr.classList.add('v');
-  await doSearch(genre);
-}
+async function sg(g) { inp.value = g; clr.classList.add('v'); await doSearch(g); }
 
 // ══ RENDER ══
 function renderList(songs, container) {
@@ -387,83 +413,110 @@ function mkRow(s, idx, arr) {
   const row = document.createElement('div');
   row.className = 'srow' + (isCur ? ' cur' : '');
   row.id = 'row-' + s.trackId;
-  const img = s.artworkUrl100 || s.artworkUrl60 || '';
+  const img = s.artworkUrl100 || '';
   const artist = s.artistName || '—';
   const title = s.trackName || '?';
   const dur = fmtTime(Math.floor((s.trackTimeMillis || 0) / 1000));
   row.innerHTML = `
     ${img ? `<img class="sthumb" src="${esc(img)}" alt="" onerror="this.style.display='none'">` : `<div class="sthumb-ph" style="background:${grad(s.trackId)}">🎵</div>`}
-    <div class="sinfo">
-      <div class="stitle">${esc(title)}</div>
-      <div class="sartist">${esc(artist)}</div>
-    </div>
+    <div class="sinfo"><div class="stitle">${esc(title)}</div><div class="sartist">${esc(artist)}</div></div>
     <div class="sbars ${isCur && isPlaying ? 'on' : ''}" id="bars-${s.trackId}"><span></span><span></span><span></span><span></span></div>
-    <span class="sdur">${dur}</span>
-  `;
-  row.addEventListener('click', () => { queue = arr; qIdx = idx; play(s); });
+    <span class="sdur">${dur}</span>`;
+  row.addEventListener('click', () => { queue = arr; qIdx = idx; playSong(s); });
   return row;
 }
 
-// ══ PLAYER ══
-async function play(s) {
-  if (!s || !s.previewUrl) { toast('❌ Preview indisponible'); return; }
+// ══ PLAY ══
+async function playSong(s) {
   cur = s;
   updateMini(); updateFull();
+  toast('⏳ Recherche sur YouTube...');
   try {
-    audio.pause();
-    audio.src = s.previewUrl;
-    audio.volume = document.getElementById('vol-r').value / 100;
-    await audio.play();
-    isPlaying = true;
-    toast('▶️ ' + esc(s.trackName || ''));
-  } catch (e) {
-    toast('❌ Erreur lecture');
-    isPlaying = false;
-  }
-  updIcons(); updRows();
+    // Chercher la vidéo YouTube correspondante
+    const videoId = await findYTVideo(s.trackName, s.artistName);
+    if (!videoId) { toast('❌ Musique introuvable sur YouTube'); return; }
+    if (ytReady) {
+      ytPlayer.loadVideoById(videoId);
+      setVol(document.getElementById('vol-r').value);
+      toast('▶️ ' + esc(s.trackName || ''));
+    } else {
+      pendingVideoId = videoId;
+      toast('▶️ ' + esc(s.trackName || ''));
+    }
+  } catch (e) { toast('❌ Erreur : ' + e.message); }
 }
 
-audio.addEventListener('timeupdate', () => {
-  if (!audio.duration) return;
-  const pct = (audio.currentTime / audio.duration) * 100;
-  document.getElementById('prog-fill').style.width = pct + '%';
-  document.getElementById('t-cur').textContent = fmtTime(audio.currentTime);
-  document.getElementById('t-tot').textContent = fmtTime(audio.duration);
-});
-
-audio.addEventListener('ended', () => { if (isRepeat) { audio.currentTime = 0; audio.play(); } else next(); });
-audio.addEventListener('error', () => { toast('❌ Erreur audio'); isPlaying = false; updIcons(); });
+async function findYTVideo(title, artist) {
+  // Utiliser l'API YouTube sans clé via lemnoslife
+  try {
+    const q = `${title} ${artist} audio`;
+    const res = await fetch(`https://yt.lemnoslife.com/noKey/search?part=snippet&q=${encodeURIComponent(q)}&type=video&maxResults=1`);
+    const data = await res.json();
+    if (data.items && data.items[0]) return data.items[0].id.videoId;
+  } catch (e) {}
+  // Fallback : chercher via l'API invidious
+  try {
+    const q = `${title} ${artist}`;
+    const res = await fetch(`https://inv.nadeko.net/api/v1/search?q=${encodeURIComponent(q)}&type=video&page=1`);
+    const data = await res.json();
+    if (Array.isArray(data) && data[0]) return data[0].videoId;
+  } catch (e) {}
+  return null;
+}
 
 function togglePlay() {
-  if (!cur) return;
-  if (isPlaying) { audio.pause(); isPlaying = false; } else { audio.play().catch(() => {}); isPlaying = true; }
+  if (!ytReady || !cur) return;
+  const state = ytPlayer.getPlayerState();
+  if (state === YT.PlayerState.PLAYING) { ytPlayer.pauseVideo(); isPlaying = false; }
+  else { ytPlayer.playVideo(); isPlaying = true; }
   updIcons(); updRows();
 }
 
 function next() {
   if (!queue.length) return;
   qIdx = isShuffle ? Math.floor(Math.random() * queue.length) : (qIdx + 1) % queue.length;
-  play(queue[qIdx]);
+  playSong(queue[qIdx]);
 }
 
 function prev() {
-  if (!cur) return;
-  if (audio.currentTime > 3) { audio.currentTime = 0; return; }
+  if (!cur || !ytReady) return;
+  if (ytPlayer.getCurrentTime() > 3) { ytPlayer.seekTo(0); return; }
   qIdx = (qIdx - 1 + queue.length) % queue.length;
-  play(queue[qIdx]);
+  playSong(queue[qIdx]);
 }
 
 function seek(e) {
-  if (!audio.duration) return;
+  if (!ytReady || !cur) return;
   const bar = document.getElementById('prog-bar');
-  audio.currentTime = ((e.clientX - bar.getBoundingClientRect().left) / bar.offsetWidth) * audio.duration;
+  const pct = (e.clientX - bar.getBoundingClientRect().left) / bar.offsetWidth;
+  ytPlayer.seekTo(pct * ytPlayer.getDuration(), true);
 }
 
+function setVol(v) { if (ytReady) ytPlayer.setVolume(parseInt(v)); }
 function toggleShuf() { isShuffle = !isShuffle; document.getElementById('shuf-btn').classList.toggle('on', isShuffle); }
 function toggleRep() { isRepeat = !isRepeat; document.getElementById('rep-btn').classList.toggle('on', isRepeat); }
 function openFP() { document.getElementById('full-p').classList.add('open'); }
 function closeFP() { document.getElementById('full-p').classList.remove('open'); }
 
+// ══ PROGRESS LOOP ══
+function startProgLoop() {
+  stopProgLoop();
+  progLoop = setInterval(() => {
+    if (!ytReady || !cur) return;
+    try {
+      const cur2 = ytPlayer.getCurrentTime() || 0;
+      const dur = ytPlayer.getDuration() || 0;
+      if (dur > 0) {
+        document.getElementById('prog-fill').style.width = ((cur2 / dur) * 100) + '%';
+        document.getElementById('t-cur').textContent = fmtTime(cur2);
+        document.getElementById('t-tot').textContent = fmtTime(dur);
+      }
+    } catch (e) {}
+  }, 500);
+}
+function stopProgLoop() { if (progLoop) { clearInterval(progLoop); progLoop = null; } }
+
+// ══ UI ══
 function updateMini() {
   if (!cur) return;
   document.getElementById('mini-p').classList.add('show');
@@ -479,7 +532,6 @@ function updateFull() {
   if (!cur) return;
   document.getElementById('fp-name').textContent = cur.trackName || '—';
   document.getElementById('fp-artist-lbl').textContent = cur.artistName || '—';
-  // iTunes artwork - remplacer 100x100 par 600x600
   const img = (cur.artworkUrl100 || '').replace('100x100', '600x600');
   const el = document.getElementById('fp-art');
   if (img) el.outerHTML = `<img class="fp-art" id="fp-art" src="${esc(img)}" alt="">`;
@@ -525,52 +577,27 @@ function renderLiked() {
 }
 
 // ══ HOME ══
-const GENRES = ['rap', 'pop hits', 'rnb', 'afrobeats', 'rock classics', 'dancehall'];
+const TRENDING_Q = ['Drake', 'Jul', 'Ninho', 'The Weeknd', 'Burna Boy', 'Bad Bunny', 'Rema', 'Wizkid'];
+const DISC_Q = ['hits 2024', 'afrobeats', 'rnb soul', 'rap nouveautés', 'top pop'];
 
 async function loadHome() {
-  // Trending = Top iTunes France
   try {
-    const songs = await getChart();
+    const q = TRENDING_Q[Math.floor(Math.random() * TRENDING_Q.length)];
+    const songs = await itunesSearch(q, 10);
     const wrap = document.getElementById('trending');
     wrap.innerHTML = '';
-    songs.slice(0, 10).forEach((s, i) => {
+    songs.forEach((s, i) => {
       const img = (s.artworkUrl100 || '').replace('100x100', '300x300');
       const card = document.createElement('div');
       card.className = 'acard';
-      card.innerHTML = `
-        ${img ? `<img class="acard-img" src="${esc(img)}" alt="" onerror="this.style.display='none'">` : `<div class="acard-img-ph" style="background:${grad(s.trackId)}">🎵</div>`}
-        <div class="acard-title">${esc(s.trackName || '')}</div>
-        <div class="acard-sub">${esc(s.artistName || '')}</div>
-      `;
-      card.addEventListener('click', () => { queue = songs; qIdx = i; play(s); });
+      card.innerHTML = `${img ? `<img class="acard-img" src="${esc(img)}" alt="">` : `<div class="acard-img-ph" style="background:${grad(s.trackId)}">🎵</div>`}<div class="acard-title">${esc(s.trackName || '')}</div><div class="acard-sub">${esc(s.artistName || '')}</div>`;
+      card.addEventListener('click', () => { queue = songs; qIdx = i; playSong(s); });
       wrap.appendChild(card);
     });
-  } catch (e) {
-    document.getElementById('trending').innerHTML = '<div style="padding:20px;color:var(--w2);font-size:13px">Chargement...</div>';
-    // Fallback : recherche générique
-    try {
-      const songs = await search('top hits 2024', 10);
-      const wrap = document.getElementById('trending');
-      wrap.innerHTML = '';
-      songs.forEach((s, i) => {
-        const img = (s.artworkUrl100 || '').replace('100x100', '300x300');
-        const card = document.createElement('div');
-        card.className = 'acard';
-        card.innerHTML = `
-          ${img ? `<img class="acard-img" src="${esc(img)}" alt="">` : `<div class="acard-img-ph" style="background:${grad(s.trackId)}">🎵</div>`}
-          <div class="acard-title">${esc(s.trackName || '')}</div>
-          <div class="acard-sub">${esc(s.artistName || '')}</div>
-        `;
-        card.addEventListener('click', () => { queue = songs; qIdx = i; play(s); });
-        wrap.appendChild(card);
-      });
-    } catch (e2) {}
-  }
-
-  // Discover
+  } catch (e) {}
   try {
-    const q = GENRES[Math.floor(Math.random() * GENRES.length)];
-    const songs = await search(q, 10);
+    const q = DISC_Q[Math.floor(Math.random() * DISC_Q.length)];
+    const songs = await itunesSearch(q, 8);
     renderList(songs, document.getElementById('discover'));
   } catch (e) {}
 }

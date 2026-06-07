@@ -447,20 +447,49 @@ async function playSong(s) {
 }
 
 async function findYTVideo(title, artist) {
-  // Utiliser l'API YouTube sans clé via lemnoslife
+  const q = `${title} ${artist} audio`;
+  // Méthode 1 : API interne YouTube via proxy CORS
+  const proxies = [
+    'https://corsproxy.io/?',
+    'https://api.allorigins.win/raw?url='
+  ];
+  for (const proxy of proxies) {
+    try {
+      const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+      const res = await fetch(proxy + encodeURIComponent(url));
+      const html = await res.text();
+      // Extraire le videoId depuis la page YouTube
+      const match = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
+      if (match) return match[1];
+    } catch (e) {}
+  }
+  // Méthode 2 : API youtubei interne
   try {
-    const q = `${title} ${artist} audio`;
-    const res = await fetch(`https://yt.lemnoslife.com/noKey/search?part=snippet&q=${encodeURIComponent(q)}&type=video&maxResults=1`);
+    const res = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://www.youtube.com/youtubei/v1/search?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        context: { client: { clientName: 'WEB', clientVersion: '2.20231121.08.00' } },
+        query: q
+      })
+    });
     const data = await res.json();
-    if (data.items && data.items[0]) return data.items[0].id.videoId;
+    const items = data?.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents;
+    if (items) {
+      for (const item of items) {
+        if (item.videoRenderer?.videoId) return item.videoRenderer.videoId;
+      }
+    }
   } catch (e) {}
-  // Fallback : chercher via l'API invidious
-  try {
-    const q = `${title} ${artist}`;
-    const res = await fetch(`https://inv.nadeko.net/api/v1/search?q=${encodeURIComponent(q)}&type=video&page=1`);
-    const data = await res.json();
-    if (Array.isArray(data) && data[0]) return data[0].videoId;
-  } catch (e) {}
+  // Méthode 3 : Invidious instances alternatives
+  const instances = ['https://invidious.privacydev.net', 'https://vid.puffyan.us', 'https://invidious.flokinet.to'];
+  for (const inst of instances) {
+    try {
+      const res = await fetch(`${inst}/api/v1/search?q=${encodeURIComponent(q)}&type=video&page=1`);
+      const data = await res.json();
+      if (Array.isArray(data) && data[0]?.videoId) return data[0].videoId;
+    } catch (e) {}
+  }
   return null;
 }
 

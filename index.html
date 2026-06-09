@@ -12,16 +12,9 @@ html,body{height:100%;background:var(--bg);color:var(--w);font-family:'DM Sans',
 ::-webkit-scrollbar{width:0;height:0;}
 #app{display:flex;flex-direction:column;height:100vh;height:100dvh;}
 #main{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:150px;}
-
-/* SC HIDDEN PLAYER */
-#sc-wrap{position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;pointer-events:none;}
-#sc-iframe{width:1px;height:1px;border:none;}
-
-/* TOPBAR */
+#yt-wrap{position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;pointer-events:none;}
 .topbar{padding:calc(16px + env(safe-area-inset-top)) 18px 10px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;background:linear-gradient(var(--bg) 60%,transparent);}
 .logo{font-family:'Syne',sans-serif;font-size:24px;font-weight:900;background:linear-gradient(135deg,#a78bfa,#e040fb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-
-/* SEARCH */
 .srch-wrap{padding:2px 16px 12px;}
 .srch-box{display:flex;align-items:center;gap:10px;background:var(--bg3);border-radius:16px;padding:12px 16px;border:1.5px solid transparent;transition:.2s;}
 .srch-box:focus-within{border-color:var(--acc);}
@@ -30,17 +23,11 @@ html,body{height:100%;background:var(--bg);color:var(--w);font-family:'DM Sans',
 .srch-box input::placeholder{color:var(--w3);}
 .srch-clr{background:none;border:none;color:var(--w3);font-size:15px;cursor:pointer;display:none;padding:0 2px;}
 .srch-clr.v{display:block;}
-
-/* SECTION */
 .sec{padding:4px 16px 0;}
 .sec-t{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:12px;}
-
-/* GENRE */
 .genre-row{display:flex;gap:8px;overflow-x:auto;padding:0 16px 2px;}
 .gpill{flex-shrink:0;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:700;border:none;color:#fff;cursor:pointer;transition:.15s;}
 .gpill:active{transform:scale(.93);}
-
-/* HSCROLL */
 .hscroll{display:flex;gap:12px;overflow-x:auto;padding:0 16px 4px;-webkit-overflow-scrolling:touch;}
 .acard{flex-shrink:0;width:130px;cursor:pointer;}
 .acard:active{opacity:.8;}
@@ -48,8 +35,6 @@ html,body{height:100%;background:var(--bg);color:var(--w);font-family:'DM Sans',
 .acard-img-ph{width:130px;height:130px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:40px;}
 .acard-title{font-size:13px;font-weight:600;margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .acard-sub{font-size:11px;color:var(--w2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-
-/* SONG ROW */
 .slist{display:flex;flex-direction:column;gap:3px;}
 .srow{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:13px;cursor:pointer;transition:.12s;position:relative;overflow:hidden;}
 .srow:active{background:var(--bg3);}
@@ -69,8 +54,6 @@ html,body{height:100%;background:var(--bg);color:var(--w);font-family:'DM Sans',
 .sbars span:nth-child(3){height:7px;animation-delay:.34s;}
 .sbars span:nth-child(4){height:10px;animation-delay:.08s;}
 @keyframes sbr{0%,100%{transform:scaleY(1);}50%{transform:scaleY(.3);}}
-
-/* LOADER / EMPTY */
 .loader{display:flex;justify-content:center;gap:6px;padding:40px 0;}
 .loader span{width:8px;height:8px;border-radius:50%;animation:ldot .8s ease-in-out infinite;}
 .loader span:nth-child(1){background:var(--acc);animation-delay:0s;}
@@ -79,24 +62,19 @@ html,body{height:100%;background:var(--bg);color:var(--w);font-family:'DM Sans',
 @keyframes ldot{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
 .empty{text-align:center;padding:50px 20px;color:var(--w2);font-size:14px;line-height:1.7;}
 .empty .ei{display:block;font-size:40px;margin-bottom:10px;}
-
-/* PAGES */
 .page{display:none;}.page.on{display:block;}
-
-/* NAV */
 #nav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(8,8,15,.93);backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,.07);display:flex;padding:6px 0 calc(6px + env(safe-area-inset-bottom));}
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;border:none;background:none;cursor:pointer;}
 .ni svg{width:22px;height:22px;stroke:var(--w3);fill:none;stroke-width:1.8;transition:.2s;}
 .ni span{font-size:10px;color:var(--w3);font-weight:600;transition:.2s;}
 .ni.on svg{stroke:var(--acc);}
 .ni.on span{color:var(--acc);}
-
-/* MINI PLAYER */
 #mini-p{position:fixed;bottom:calc(58px + env(safe-area-inset-bottom));left:10px;right:10px;z-index:190;transform:translateY(200%);transition:transform .4s cubic-bezier(.34,1.56,.64,1);}
 #mini-p.show{transform:translateY(0);}
 .mp-in{background:linear-gradient(135deg,rgba(124,77,255,.94),rgba(224,64,251,.9));backdrop-filter:blur(20px);border-radius:18px;padding:10px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;box-shadow:0 6px 28px rgba(124,77,255,.38);}
 .mp-art{width:44px;height:44px;border-radius:10px;object-fit:cover;flex-shrink:0;}
 .mp-art-ph{width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.mp-info{flex:1;min-width:0;}
 .mp-title{font-size:13px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mp-artist{font-size:11px;color:rgba(255,255,255,.65);}
 .mp-btns{display:flex;align-items:center;gap:6px;}
@@ -104,8 +82,6 @@ html,body{height:100%;background:var(--bg);color:var(--w);font-family:'DM Sans',
 .mpb svg{width:15px;height:15px;fill:white;}
 .mpb.big{width:40px;height:40px;background:#fff;}
 .mpb.big svg{fill:var(--acc);width:16px;height:16px;}
-
-/* FULL PLAYER */
 #full-p{position:fixed;inset:0;z-index:500;background:var(--bg);transform:translateY(100%);transition:transform .4s cubic-bezier(.25,.46,.45,.94);}
 #full-p.open{transform:translateY(0);}
 .fp-bg{position:absolute;inset:0;opacity:.22;filter:blur(80px);pointer-events:none;background:radial-gradient(circle at 40% 25%,var(--acc),transparent 55%),radial-gradient(circle at 72% 72%,var(--acc2),transparent 55%);}
@@ -142,29 +118,20 @@ html,body{height:100%;background:var(--bg);color:var(--w);font-family:'DM Sans',
 .vol-ico svg{width:16px;height:16px;stroke:var(--w3);fill:none;stroke-width:1.8;}
 input[type=range].vol{flex:1;-webkit-appearance:none;height:4px;background:var(--bg3);border-radius:4px;outline:none;}
 input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;cursor:pointer;}
-
-/* SC badge */
-.sc-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,68,0,.15);border:1px solid rgba(255,68,0,.3);border-radius:10px;padding:3px 9px;font-size:10px;font-weight:700;color:#ff6633;margin-bottom:8px;}
-
-/* TOAST */
+/* source badge */
+.src-badge{font-size:9px;font-weight:700;padding:1px 6px;border-radius:6px;margin-left:4px;vertical-align:middle;}
+.src-sc{background:rgba(255,85,0,.2);color:#ff5500;}
+.src-yt{background:rgba(255,0,0,.15);color:#ff4444;}
 #toast{position:fixed;bottom:calc(140px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(12px);background:rgba(26,26,46,.96);border:1px solid rgba(124,77,255,.3);padding:9px 20px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;transition:.3s;pointer-events:none;white-space:nowrap;z-index:9999;backdrop-filter:blur(12px);}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>
 </head>
 <body>
 
-<!-- SoundCloud Widget caché -->
-<div id="sc-wrap">
-  <iframe id="sc-iframe"
-    src="https://w.soundcloud.com/player/?url=https%3A//soundcloud.com/soundcloud-checkout/sets/weekly-top-tracks&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false"
-    allow="autoplay">
-  </iframe>
-</div>
+<div id="yt-wrap"><div id="yt-player"></div></div>
 
 <div id="app">
   <div id="main">
-
-    <!-- HOME -->
     <div id="page-home" class="page on">
       <div class="topbar"><div class="logo">YouSong</div></div>
       <div class="srch-wrap">
@@ -194,14 +161,10 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
         <div class="sec" style="padding-top:0"><div class="slist" id="discover"></div></div>
       </div>
     </div>
-
-    <!-- LIKED -->
     <div id="page-liked" class="page">
       <div class="topbar"><div class="logo">❤️ Likés</div></div>
       <div class="sec"><div class="slist" id="liked-list"></div></div>
     </div>
-
-    <!-- EXPLORE -->
     <div id="page-explore" class="page">
       <div class="topbar"><div class="logo">🔎 Explorer</div></div>
       <div class="srch-wrap">
@@ -213,7 +176,6 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
       <div class="sec"><div class="slist" id="explore-list"></div></div>
     </div>
   </div>
-
   <nav id="nav">
     <button class="ni on" id="ni-home" onclick="showPage('home')">
       <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -230,7 +192,6 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
   </nav>
 </div>
 
-<!-- MINI PLAYER -->
 <div id="mini-p">
   <div class="mp-in" onclick="openFP()">
     <div class="mp-art-ph" id="mp-art">🎵</div>
@@ -240,13 +201,12 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
     </div>
     <div class="mp-btns" onclick="event.stopPropagation()">
       <button class="mpb" onclick="prev()"><svg viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20" fill="white"/><line x1="5" y1="19" x2="5" y2="5" stroke="white" stroke-width="2.5" fill="none"/></svg></button>
-      <button class="mpb big" id="mp-play" onclick="togglePlay()"><svg id="mp-ico" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
+      <button class="mpb big" onclick="togglePlay()"><svg id="mp-ico" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
       <button class="mpb" onclick="next()"><svg viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4" fill="white"/><line x1="19" y1="5" x2="19" y2="19" stroke="white" stroke-width="2.5" fill="none"/></svg></button>
     </div>
   </div>
 </div>
 
-<!-- FULL PLAYER -->
 <div id="full-p">
   <div class="fp-bg"></div>
   <div class="fp-body">
@@ -284,489 +244,499 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
 
 <div id="toast"></div>
 
-<!-- SoundCloud Widget API -->
-<script src="https://w.soundcloud.com/player/api.js"></script>
+<script src="https://www.youtube.com/iframe_api"></script>
 <script>
-// ══ SOUNDCLOUD WIDGET ══
-let scWidget = null;
-let scReady = false;
-let pendingTrackUrl = null;
-let scDuration = 0;
-let scPosition = 0;
+// ══════════════════════════════════════════
+//  SOUNDCLOUD client_id — extrait au runtime
+// ══════════════════════════════════════════
+// Liste de client_ids connus (rotatif, l'app essaie jusqu'à en trouver un qui marche)
+const SC_IDS = [
+  'iZIs9mchVcX5lhVRyQGGAYlNPVldzAoX',
+  'a3e059563d7fd3372b49b37f00a00bcf',
+  '2t9loNQH90kzJcsFCODdigxfp325aq4z',
+  'ogCSyfVd4de6onbcgEIkRuyst0KOolKI',
+  'YUKXoArFcqrlQn9tfNHvvyfnDISj04zk',
+  'fDIdFIeQ6vkG5gUbFxuIaQhOCvmMhAcG',
+  'xmtech7r7YEiuHw6gKo0JBkqnJbfFOuL',
+  'BeGVhOrKmfHMTD6SJLDgm19LJBuBDyNY',
+];
+let SC_CLIENT_ID = SC_IDS[0];
+let scIdIdx = 0;
 
-function initSC() {
-  const iframe = document.getElementById('sc-iframe');
-  scWidget = SC.Widget(iframe);
-
-  scWidget.bind(SC.Widget.Events.READY, () => {
-    scReady = true;
-    scWidget.setVolume(80);
-    if (pendingTrackUrl) {
-      loadSCTrack(pendingTrackUrl);
-      pendingTrackUrl = null;
-    }
-  });
-
-  scWidget.bind(SC.Widget.Events.PLAY, () => {
-    isPlaying = true;
-    updIcons(); updRows(); startProgLoop();
-  });
-
-  scWidget.bind(SC.Widget.Events.PAUSE, () => {
-    isPlaying = false;
-    updIcons(); updRows(); stopProgLoop();
-  });
-
-  scWidget.bind(SC.Widget.Events.FINISH, () => {
-    stopProgLoop();
-    if (isRepeat) { scWidget.seekTo(0); scWidget.play(); }
-    else next();
-  });
-
-  scWidget.bind(SC.Widget.Events.ERROR, () => {
-    toast('❌ Intro non streamable, piste suivante...');
-    setTimeout(next, 1500);
-  });
-
-  scWidget.bind(SC.Widget.Events.PLAY_PROGRESS, (obj) => {
-    scPosition = obj.currentPosition;
-    scDuration = obj.relativePosition > 0 ? obj.currentPosition / obj.relativePosition : 0;
-    if (scDuration > 0) {
-      const pct = (scPosition / scDuration) * 100;
-      document.getElementById('prog-fill').style.width = pct + '%';
-      document.getElementById('t-cur').textContent = fmtTime(scPosition / 1000);
-      document.getElementById('t-tot').textContent = fmtTime(scDuration / 1000);
-    }
-  });
+async function tryNextScId() {
+  scIdIdx++;
+  if (scIdIdx < SC_IDS.length) {
+    SC_CLIENT_ID = SC_IDS[scIdIdx];
+    return true;
+  }
+  return false;
 }
 
-function loadSCTrack(url) {
-  scWidget.load(url, {
-    auto_play: true,
-    hide_related: true,
-    show_comments: false,
-    show_user: false,
-    show_reposts: false,
-    buying: false,
-    liking: false,
-    download: false,
-    sharing: false
-  });
-}
-
-// Attend que SC Widget API soit dispo
-function waitSC() {
-  if (typeof SC !== 'undefined') { initSC(); }
-  else { setTimeout(waitSC, 100); }
-}
-waitSC();
-
-// ══ ETAT ══
-let queue = [], qIdx = 0, cur = null;
-let isPlaying = false, isShuffle = false, isRepeat = false;
-let liked = JSON.parse(localStorage.getItem('ys_liked') || '[]');
-let srchTimer = null;
-let progLoop = null;
-
-// ══ ITUNES (métadonnées + covers) ══
-const ITUNES = 'https://itunes.apple.com';
-
-async function itunesSearch(q, limit = 20) {
-  const res = await fetch(`${ITUNES}/search?term=${encodeURIComponent(q)}&entity=song&limit=${limit}&country=fr`);
-  const data = await res.json();
-  return (data.results || []).filter(t => t.trackName);
-}
-
-// ══ SOUNDCLOUD SEARCH (via oEmbed + recherche publique) ══
-// On utilise l'API oEmbed de SoundCloud pour résoudre les URLs
-// et l'endpoint de recherche public (sans clé pour les tracks streamables)
-async function findSCTrack(title, artist) {
-  const q = encodeURIComponent(`${title} ${artist}`);
-  // Endpoint de recherche SoundCloud public (pas besoin de clé pour lire)
-  try {
-    const res = await fetch(`https://api-v2.soundcloud.com/search/tracks?q=${q}&limit=1&client_id=iZIs9mchVcX5lhVRyQGGAYlNPVldzAoX`);
-    const data = await res.json();
-    if (data.collection && data.collection.length > 0) {
-      const track = data.collection[0];
-      // Vérifier que le track est streamable
-      if (track.streamable && track.permalink_url) {
-        return track.permalink_url;
-      }
-    }
-  } catch (e) {}
-
-  // Fallback: construire URL directe SoundCloud et tenter oEmbed
-  try {
-    const fallbackQ = encodeURIComponent(`${title} ${artist}`);
-    const oembed = await fetch(`https://soundcloud.com/oembed?format=json&url=https://soundcloud.com/search?q=${fallbackQ}`);
-  } catch(e) {}
-
+async function scFetch(url) {
+  for (let i = 0; i < SC_IDS.length; i++) {
+    SC_CLIENT_ID = SC_IDS[i];
+    const sep = url.includes('?') ? '&' : '?';
+    try {
+      const res = await fetch(url + sep + 'client_id=' + SC_CLIENT_ID);
+      if (res.status === 401 || res.status === 403) continue;
+      if (!res.ok) continue;
+      const data = await res.json();
+      return data;
+    } catch(e) { continue; }
+  }
   return null;
 }
 
-// ══ PAGES ══
-function showPage(p) {
-  document.querySelectorAll('.page').forEach(el => el.classList.remove('on'));
-  document.querySelectorAll('.ni').forEach(el => el.classList.remove('on'));
-  document.getElementById('page-' + p).classList.add('on');
-  document.getElementById('ni-' + p).classList.add('on');
-  if (p === 'liked') renderLiked();
+// ══════════════════════════════════════════
+//  YOUTUBE PLAYER (fallback si SC rate)
+// ══════════════════════════════════════════
+let ytPlayer = null, ytReady = false, pendingYtId = null;
+
+function onYouTubeIframeAPIReady() {
+  ytPlayer = new YT.Player('yt-player', {
+    height:'1', width:'1',
+    playerVars:{autoplay:0,controls:0,disablekb:1,fs:0,iv_load_policy:3,modestbranding:1,rel:0},
+    events:{
+      onReady: () => {
+        ytReady = true;
+        if (pendingYtId) { ytPlayer.loadVideoById(pendingYtId); pendingYtId = null; }
+      },
+      onStateChange: (e) => {
+        if (e.data === YT.PlayerState.PLAYING) { isPlaying=true; updIcons(); updRows(); startProgLoop(); }
+        else if (e.data === YT.PlayerState.PAUSED) { isPlaying=false; updIcons(); updRows(); stopProgLoop(); }
+        else if (e.data === YT.PlayerState.ENDED) { stopProgLoop(); if(isRepeat){ytPlayer.seekTo(0);ytPlayer.playVideo();}else next(); }
+      },
+      onError: () => { toast('❌ Non dispo, titre suivant...'); setTimeout(next,1500); }
+    }
+  });
 }
 
-// ══ SEARCH UI ══
-const inp = document.getElementById('srch-inp');
-const clr = document.getElementById('srch-clr');
-inp.addEventListener('input', () => {
-  const q = inp.value.trim();
-  clr.classList.toggle('v', !!q);
-  clearTimeout(srchTimer);
-  if (!q) { hideSearch(); return; }
-  srchTimer = setTimeout(() => doSearch(q), 600);
-});
-clr.addEventListener('click', () => { inp.value = ''; clr.classList.remove('v'); hideSearch(); });
+const YT_KEY = 'AIzaSyBh9g2k2oqJ0wDz0LxvtnNkx9QDLR-5Xac';
 
-document.getElementById('srch2-inp').addEventListener('input', function () {
+async function findYTVideo(title, artist) {
+  const q = `${title} ${artist} audio`;
+  try {
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&maxResults=1&key=${YT_KEY}`);
+    const data = await res.json();
+    if (data.items && data.items[0]) return data.items[0].id.videoId;
+  } catch(e) {}
+  return null;
+}
+
+// ══════════════════════════════════════════
+//  ETAT
+// ══════════════════════════════════════════
+let queue=[], qIdx=0, cur=null, curSource=null; // curSource = 'sc' | 'yt'
+let isPlaying=false, isShuffle=false, isRepeat=false;
+let liked=JSON.parse(localStorage.getItem('ys_liked')||'[]');
+let srchTimer=null, progLoop=null;
+
+// ══════════════════════════════════════════
+//  SOUNDCLOUD SEARCH
+// ══════════════════════════════════════════
+async function searchSC(q, limit=20) {
+  const data = await scFetch(
+    `https://api-v2.soundcloud.com/search/tracks?q=${encodeURIComponent(q)}&limit=${limit}`
+  );
+  if (!data || !data.collection) return [];
+  return data.collection
+    .filter(t => t.streamable)
+    .map(t => ({
+      type: 'sc',
+      trackId: 'sc_' + t.id,
+      scId: t.id,
+      trackName: t.title,
+      artistName: t.user ? t.user.username : '—',
+      artworkUrl100: t.artwork_url ? t.artwork_url.replace('-large','-t300x300') : '',
+      artworkUrl600: t.artwork_url ? t.artwork_url.replace('-large','-t500x500') : '',
+      scUrl: t.permalink_url,
+      trackTimeMillis: t.duration || 0,
+    }));
+}
+
+// Stream URL SoundCloud via l'API de streaming
+async function getSCStreamUrl(scId) {
+  const data = await scFetch(`https://api-v2.soundcloud.com/tracks/${scId}/streams`);
+  if (!data) return null;
+  // Priorité : http_mp3_128_url > progressive > hls
+  return data.http_mp3_128_url || data.preview_mp3_128_url || null;
+}
+
+// ══════════════════════════════════════════
+//  ITUNES (métadonnées + covers)
+// ══════════════════════════════════════════
+async function itunesSearch(q, limit=20) {
+  const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=${limit}&country=fr`);
+  const data = await res.json();
+  return (data.results||[]).filter(t=>t.trackName).map(t => ({...t, type:'itunes'}));
+}
+
+// ══════════════════════════════════════════
+//  PAGES
+// ══════════════════════════════════════════
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('.ni').forEach(el=>el.classList.remove('on'));
+  document.getElementById('page-'+p).classList.add('on');
+  document.getElementById('ni-'+p).classList.add('on');
+  if(p==='liked') renderLiked();
+}
+
+// ══════════════════════════════════════════
+//  SEARCH UI
+// ══════════════════════════════════════════
+const inp=document.getElementById('srch-inp');
+const clr=document.getElementById('srch-clr');
+inp.addEventListener('input',()=>{
+  const q=inp.value.trim();
+  clr.classList.toggle('v',!!q);
   clearTimeout(srchTimer);
-  const q = this.value.trim();
-  if (!q) { document.getElementById('explore-list').innerHTML = ''; return; }
-  srchTimer = setTimeout(() => doSearchIn(q, 'explore-list'), 600);
+  if(!q){hideSearch();return;}
+  srchTimer=setTimeout(()=>doSearch(q),500);
+});
+clr.addEventListener('click',()=>{inp.value='';clr.classList.remove('v');hideSearch();});
+
+document.getElementById('srch2-inp').addEventListener('input',function(){
+  clearTimeout(srchTimer);
+  const q=this.value.trim();
+  if(!q){document.getElementById('explore-list').innerHTML='';return;}
+  srchTimer=setTimeout(()=>doSearchFull(q,'explore-list'),500);
 });
 
-function hideSearch() {
-  document.getElementById('srch-results').style.display = 'none';
-  document.getElementById('home-cnt').style.display = 'block';
+function hideSearch(){
+  document.getElementById('srch-results').style.display='none';
+  document.getElementById('home-cnt').style.display='block';
 }
 
 async function doSearch(q) {
-  document.getElementById('srch-results').style.display = 'block';
-  document.getElementById('home-cnt').style.display = 'none';
-  const list = document.getElementById('results-list');
-  list.innerHTML = mkLoader();
+  document.getElementById('srch-results').style.display='block';
+  document.getElementById('home-cnt').style.display='none';
+  const list=document.getElementById('results-list');
+  list.innerHTML=mkLoader();
   try {
-    // Chercher d'abord sur SoundCloud directement
-    const scResults = await searchSC(q, 20);
+    // SoundCloud en priorité
+    let songs = await searchSC(q, 25);
+    if (songs.length) {
+      queue=songs; qIdx=0;
+      renderList(songs,list); return;
+    }
+    // Fallback iTunes
+    songs = await itunesSearch(q, 25);
+    if(!songs.length){list.innerHTML=mkEmpty('😕','Aucun résultat pour "'+esc(q)+'"');return;}
+    queue=songs; qIdx=0;
+    renderList(songs,list);
+  } catch(e){list.innerHTML=mkEmpty('⚠️','Erreur de connexion.');}
+}
+
+async function doSearchFull(q,listId) {
+  const list=document.getElementById(listId);
+  list.innerHTML=mkLoader();
+  try {
+    let songs=await searchSC(q,20);
+    if(!songs.length) songs=await itunesSearch(q,20);
+    if(!songs.length){list.innerHTML=mkEmpty('😕','Aucun résultat');return;}
+    renderList(songs,list);
+  } catch(e){list.innerHTML=mkEmpty('⚠️','Erreur réseau');}
+}
+
+async function sg(g){inp.value=g;clr.classList.add('v');await doSearch(g);}
+
+// ══════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════
+function renderList(songs,container){
+  container.innerHTML='';
+  songs.forEach((s,i)=>container.appendChild(mkRow(s,i,songs)));
+}
+
+function mkRow(s,idx,arr){
+  const isCur=cur&&cur.trackId===s.trackId;
+  const row=document.createElement('div');
+  row.className='srow'+(isCur?' cur':'');
+  row.id='row-'+s.trackId;
+  const img=s.artworkUrl100||'';
+  const title=s.trackName||'?';
+  const artist=s.artistName||'—';
+  const dur=fmtTime(Math.floor((s.trackTimeMillis||0)/1000));
+  const badge=s.type==='sc'?'<span class="src-badge src-sc">SC</span>':'';
+  row.innerHTML=`
+    ${img?`<img class="sthumb" src="${esc(img)}" alt="" onerror="this.style.display='none'">`:`<div class="sthumb-ph" style="background:${grad(s.trackId)}">🎵</div>`}
+    <div class="sinfo"><div class="stitle">${esc(title)}${badge}</div><div class="sartist">${esc(artist)}</div></div>
+    <div class="sbars ${isCur&&isPlaying?'on':''}" id="bars-${s.trackId}"><span></span><span></span><span></span><span></span></div>
+    <span class="sdur">${dur}</span>`;
+  row.addEventListener('click',()=>{queue=arr;qIdx=idx;playSong(s);});
+  return row;
+}
+
+// ══════════════════════════════════════════
+//  PLAY — SC en priorité, YT en fallback
+// ══════════════════════════════════════════
+async function playSong(s) {
+  cur=s; updateMini(); updateFull();
+  stopProgLoop();
+  document.getElementById('prog-fill').style.width='0%';
+  document.getElementById('t-cur').textContent='0:00';
+  document.getElementById('t-tot').textContent='0:00';
+
+  if (s.type==='sc') {
+    toast('⏳ Chargement...');
+    await playViaSC(s);
+  } else {
+    // iTunes → chercher SC d'abord, sinon YT
+    toast('⏳ Recherche...');
+    const scResults = await searchSC(`${s.trackName} ${s.artistName}`, 3);
     if (scResults.length) {
-      queue = scResults; qIdx = 0;
-      renderSCList(scResults, list);
+      const sc = scResults[0];
+      // Copier les infos SC dans cur pour avoir les bonnes covers
+      cur = { ...s, type:'sc', scId: sc.scId, scUrl: sc.scUrl,
+               artworkUrl100: sc.artworkUrl100||s.artworkUrl100,
+               artworkUrl600: sc.artworkUrl600||s.artworkUrl600 };
+      updateFull();
+      await playViaSC(cur);
+    } else {
+      await playViaYT(s);
+    }
+  }
+}
+
+// Jouer via SoundCloud (Audio element avec stream URL)
+let scAudio = null;
+
+async function playViaSC(s) {
+  try {
+    const streamUrl = await getSCStreamUrl(s.scId);
+    if (!streamUrl) {
+      toast('❌ SC introuvable → YouTube...');
+      await playViaYT(s);
       return;
     }
-    // Fallback iTunes si SC vide
-    const songs = await itunesSearch(q, 20);
-    if (!songs.length) { list.innerHTML = mkEmpty('😕', 'Aucun résultat pour "' + esc(q) + '"'); return; }
-    queue = songs; qIdx = 0;
-    renderList(songs, list);
-  } catch (e) { list.innerHTML = mkEmpty('⚠️', 'Erreur de connexion.'); }
-}
-
-async function doSearchIn(q, listId) {
-  const list = document.getElementById(listId);
-  list.innerHTML = mkLoader();
-  try {
-    const scResults = await searchSC(q, 15);
-    if (scResults.length) { renderSCList(scResults, list); return; }
-    const songs = await itunesSearch(q, 15);
-    if (!songs.length) { list.innerHTML = mkEmpty('😕', 'Aucun résultat'); return; }
-    renderList(songs, list);
-  } catch (e) { list.innerHTML = mkEmpty('⚠️', 'Erreur réseau'); }
-}
-
-async function sg(g) { inp.value = g; clr.classList.add('v'); await doSearch(g); }
-
-// ══ SOUNDCLOUD API v2 ══
-// Client ID public SoundCloud (extrait du widget officiel, fonctionnel en lecture seule)
-const SC_CLIENT_ID = 'iZIs9mchVcX5lhVRyQGGAYlNPVldzAoX';
-
-async function searchSC(q, limit = 20) {
-  try {
-    const res = await fetch(
-      `https://api-v2.soundcloud.com/search/tracks?q=${encodeURIComponent(q)}&limit=${limit}&client_id=${SC_CLIENT_ID}`
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.collection || []).filter(t => t.streamable && t.permalink_url).map(t => ({
-      type: 'sc',
-      trackId: t.id,
-      trackName: t.title,
-      artistName: t.user ? t.user.username : '—',
-      artworkUrl100: t.artwork_url ? t.artwork_url.replace('large', 't300x300') : '',
-      artworkUrl600: t.artwork_url ? t.artwork_url.replace('large', 't500x500') : '',
-      scUrl: t.permalink_url,
-      trackTimeMillis: t.duration || 0,
-      duration: t.duration || 0
-    }));
-  } catch (e) {
-    return [];
+    // Stopper YT si actif
+    if (ytReady && ytPlayer) { try { ytPlayer.stopVideo(); } catch(e){} }
+    // Créer/recharger l'audio
+    if (scAudio) { scAudio.pause(); scAudio.src=''; }
+    scAudio = new Audio(streamUrl);
+    scAudio.volume = document.getElementById('vol-r').value / 100;
+    scAudio.addEventListener('play',()=>{ isPlaying=true; curSource='sc'; updIcons(); updRows(); startProgLoopSC(); });
+    scAudio.addEventListener('pause',()=>{ isPlaying=false; updIcons(); updRows(); stopProgLoop(); });
+    scAudio.addEventListener('ended',()=>{ stopProgLoop(); if(isRepeat){scAudio.currentTime=0;scAudio.play();}else next(); });
+    scAudio.addEventListener('error',()=>{ toast('❌ Erreur SC → YouTube...'); playViaYT(s); });
+    await scAudio.play();
+    curSource='sc';
+    toast('▶️ '+esc(s.trackName||''));
+  } catch(e) {
+    toast('❌ SC bloqué → YouTube...');
+    await playViaYT(s);
   }
 }
 
-// ══ RENDER SC ══
-function renderSCList(songs, container) {
-  container.innerHTML = '';
-  songs.forEach((s, i) => container.appendChild(mkSCRow(s, i, songs)));
-}
-
-function mkSCRow(s, idx, arr) {
-  const isCur = cur && cur.trackId === s.trackId;
-  const row = document.createElement('div');
-  row.className = 'srow' + (isCur ? ' cur' : '');
-  row.id = 'row-' + s.trackId;
-  const img = s.artworkUrl100 || '';
-  const artist = s.artistName || '—';
-  const title = s.trackName || '?';
-  const dur = fmtTime(Math.floor((s.trackTimeMillis || 0) / 1000));
-  row.innerHTML = `
-    ${img ? `<img class="sthumb" src="${esc(img)}" alt="" onerror="this.style.display='none'">` : `<div class="sthumb-ph" style="background:${grad(s.trackId)}">🎵</div>`}
-    <div class="sinfo"><div class="stitle">${esc(title)}</div><div class="sartist">${esc(artist)}</div></div>
-    <div class="sbars ${isCur && isPlaying ? 'on' : ''}" id="bars-${s.trackId}"><span></span><span></span><span></span><span></span></div>
-    <span class="sdur">${dur}</span>`;
-  row.addEventListener('click', () => { queue = arr; qIdx = idx; playSong(s); });
-  return row;
-}
-
-// ══ RENDER ITUNES (fallback) ══
-function renderList(songs, container) {
-  container.innerHTML = '';
-  songs.forEach((s, i) => container.appendChild(mkRow(s, i, songs)));
-}
-
-function mkRow(s, idx, arr) {
-  const isCur = cur && cur.trackId === s.trackId;
-  const row = document.createElement('div');
-  row.className = 'srow' + (isCur ? ' cur' : '');
-  row.id = 'row-' + s.trackId;
-  const img = s.artworkUrl100 || '';
-  const artist = s.artistName || '—';
-  const title = s.trackName || '?';
-  const dur = fmtTime(Math.floor((s.trackTimeMillis || 0) / 1000));
-  row.innerHTML = `
-    ${img ? `<img class="sthumb" src="${esc(img)}" alt="" onerror="this.style.display='none'">` : `<div class="sthumb-ph" style="background:${grad(s.trackId)}">🎵</div>`}
-    <div class="sinfo"><div class="stitle">${esc(title)}</div><div class="sartist">${esc(artist)}</div></div>
-    <div class="sbars ${isCur && isPlaying ? 'on' : ''}" id="bars-${s.trackId}"><span></span><span></span><span></span><span></span></div>
-    <span class="sdur">${dur}</span>`;
-  row.addEventListener('click', () => { queue = arr; qIdx = idx; playSong(s); });
-  return row;
-}
-
-// ══ PLAY ══
-async function playSong(s) {
-  cur = s;
-  updateMini(); updateFull();
-
-  // Si le morceau a déjà une URL SoundCloud
-  if (s.type === 'sc' && s.scUrl) {
-    toast('⏳ Chargement SoundCloud...');
-    if (scReady) {
-      loadSCTrack(s.scUrl);
-    } else {
-      pendingTrackUrl = s.scUrl;
-    }
-    return;
-  }
-
-  // Sinon (iTunes fallback) : chercher sur SoundCloud
-  toast('⏳ Recherche sur SoundCloud...');
-  try {
-    const scResults = await searchSC(`${s.trackName} ${s.artistName}`, 3);
-    if (scResults.length && scResults[0].scUrl) {
-      const url = scResults[0].scUrl;
-      // Enrichir le cur avec l'image SC si pas d'image
-      if (!cur.artworkUrl100 && scResults[0].artworkUrl100) {
-        cur.artworkUrl100 = scResults[0].artworkUrl100;
-        cur.artworkUrl600 = scResults[0].artworkUrl600;
-        updateFull();
-      }
-      toast('▶️ ' + esc(s.trackName || ''));
-      if (scReady) { loadSCTrack(url); }
-      else { pendingTrackUrl = url; }
-    } else {
-      toast('❌ Introuvable sur SoundCloud');
-    }
-  } catch (e) {
-    toast('❌ Erreur : ' + e.message);
-  }
+// Jouer via YouTube (fallback)
+async function playViaYT(s) {
+  if (scAudio) { scAudio.pause(); scAudio.src=''; scAudio=null; }
+  const vid = await findYTVideo(s.trackName, s.artistName);
+  if (!vid) { toast('❌ Introuvable partout'); return; }
+  curSource='yt';
+  toast('▶️ '+esc(s.trackName||'')+' (YouTube)');
+  if (ytReady) { ytPlayer.loadVideoById(vid); setVol(document.getElementById('vol-r').value); }
+  else { pendingYtId=vid; }
 }
 
 function togglePlay() {
-  if (!scReady || !cur) return;
-  if (isPlaying) { scWidget.pause(); }
-  else { scWidget.play(); }
+  if (!cur) return;
+  if (curSource==='sc' && scAudio) {
+    if (isPlaying) scAudio.pause(); else scAudio.play();
+  } else if (curSource==='yt' && ytReady) {
+    const state=ytPlayer.getPlayerState();
+    if (state===YT.PlayerState.PLAYING) ytPlayer.pauseVideo();
+    else ytPlayer.playVideo();
+  }
 }
 
 function next() {
-  if (!queue.length) return;
-  qIdx = isShuffle ? Math.floor(Math.random() * queue.length) : (qIdx + 1) % queue.length;
+  if(!queue.length)return;
+  qIdx=isShuffle?Math.floor(Math.random()*queue.length):(qIdx+1)%queue.length;
   playSong(queue[qIdx]);
 }
 
 function prev() {
-  if (!cur || !scReady) return;
-  if (scPosition > 3000) { scWidget.seekTo(0); return; }
-  qIdx = (qIdx - 1 + queue.length) % queue.length;
+  if(!cur)return;
+  const pos = curSource==='sc'&&scAudio ? scAudio.currentTime : (ytReady&&ytPlayer?ytPlayer.getCurrentTime():0);
+  if(pos>3){
+    if(curSource==='sc'&&scAudio) scAudio.currentTime=0;
+    else if(ytReady) ytPlayer.seekTo(0);
+    return;
+  }
+  qIdx=(qIdx-1+queue.length)%queue.length;
   playSong(queue[qIdx]);
 }
 
 function seek(e) {
-  if (!scReady || !cur || scDuration === 0) return;
-  const bar = document.getElementById('prog-bar');
-  const pct = (e.clientX - bar.getBoundingClientRect().left) / bar.offsetWidth;
-  scWidget.seekTo(pct * scDuration);
+  const bar=document.getElementById('prog-bar');
+  const pct=(e.clientX-bar.getBoundingClientRect().left)/bar.offsetWidth;
+  if(curSource==='sc'&&scAudio&&scAudio.duration){
+    scAudio.currentTime=pct*scAudio.duration;
+  } else if(curSource==='yt'&&ytReady){
+    ytPlayer.seekTo(pct*ytPlayer.getDuration(),true);
+  }
 }
 
-function setVol(v) { if (scReady) scWidget.setVolume(parseInt(v)); }
-function toggleShuf() { isShuffle = !isShuffle; document.getElementById('shuf-btn').classList.toggle('on', isShuffle); }
-function toggleRep() { isRepeat = !isRepeat; document.getElementById('rep-btn').classList.toggle('on', isRepeat); }
-function openFP() { document.getElementById('full-p').classList.add('open'); }
-function closeFP() { document.getElementById('full-p').classList.remove('open'); }
+function setVol(v) {
+  const vol=parseInt(v)/100;
+  if(scAudio) scAudio.volume=vol;
+  if(ytReady) ytPlayer.setVolume(parseInt(v));
+}
 
-// ══ PROGRESS LOOP ══
-// La barre de progression est mise à jour via l'event PLAY_PROGRESS de SC
-// On garde un fallback loop pour les cas où l'event ne se déclenche pas
-function startProgLoop() {
+function toggleShuf(){isShuffle=!isShuffle;document.getElementById('shuf-btn').classList.toggle('on',isShuffle);}
+function toggleRep(){isRepeat=!isRepeat;document.getElementById('rep-btn').classList.toggle('on',isRepeat);}
+function openFP(){document.getElementById('full-p').classList.add('open');}
+function closeFP(){document.getElementById('full-p').classList.remove('open');}
+
+// ══════════════════════════════════════════
+//  PROGRESS
+// ══════════════════════════════════════════
+function startProgLoopSC() {
   stopProgLoop();
-  progLoop = setInterval(() => {
-    if (!scReady || !cur) return;
-    try {
-      scWidget.getPosition(pos => {
-        scWidget.getDuration(dur => {
-          if (dur > 0) {
-            document.getElementById('prog-fill').style.width = ((pos / dur) * 100) + '%';
-            document.getElementById('t-cur').textContent = fmtTime(pos / 1000);
-            document.getElementById('t-tot').textContent = fmtTime(dur / 1000);
-            scPosition = pos;
-            scDuration = dur;
-          }
-        });
-      });
-    } catch (e) {}
-  }, 800);
+  progLoop=setInterval(()=>{
+    if(!scAudio||!cur)return;
+    const pos=scAudio.currentTime||0;
+    const dur=scAudio.duration||0;
+    if(dur>0){
+      document.getElementById('prog-fill').style.width=((pos/dur)*100)+'%';
+      document.getElementById('t-cur').textContent=fmtTime(pos);
+      document.getElementById('t-tot').textContent=fmtTime(dur);
+    }
+  },500);
 }
-function stopProgLoop() { if (progLoop) { clearInterval(progLoop); progLoop = null; } }
 
-// ══ UI ══
-function updateMini() {
-  if (!cur) return;
+function startProgLoop() { // pour YT
+  stopProgLoop();
+  progLoop=setInterval(()=>{
+    if(!ytReady||!cur)return;
+    try{
+      const pos=ytPlayer.getCurrentTime()||0;
+      const dur=ytPlayer.getDuration()||0;
+      if(dur>0){
+        document.getElementById('prog-fill').style.width=((pos/dur)*100)+'%';
+        document.getElementById('t-cur').textContent=fmtTime(pos);
+        document.getElementById('t-tot').textContent=fmtTime(dur);
+      }
+    }catch(e){}
+  },500);
+}
+
+function stopProgLoop(){if(progLoop){clearInterval(progLoop);progLoop=null;}}
+
+// ══════════════════════════════════════════
+//  UI
+// ══════════════════════════════════════════
+function updateMini(){
+  if(!cur)return;
   document.getElementById('mini-p').classList.add('show');
-  document.getElementById('mp-title').textContent = cur.trackName || '—';
-  document.getElementById('mp-artist').textContent = cur.artistName || '—';
-  const img = cur.artworkUrl100;
-  const el = document.getElementById('mp-art');
-  if (img) {
-    const newEl = document.createElement('img');
-    newEl.className = 'mp-art'; newEl.id = 'mp-art'; newEl.src = esc(img); newEl.alt = '';
-    newEl.onerror = function() { this.outerHTML = '<div class="mp-art-ph" id="mp-art">🎵</div>'; };
-    el.parentNode.replaceChild(newEl, el);
-  } else { el.className = 'mp-art-ph'; el.id = 'mp-art'; el.textContent = '🎵'; }
+  document.getElementById('mp-title').textContent=cur.trackName||'—';
+  document.getElementById('mp-artist').textContent=cur.artistName||'—';
+  const img=cur.artworkUrl100;
+  const el=document.getElementById('mp-art');
+  if(img){
+    const n=document.createElement('img');
+    n.className='mp-art';n.id='mp-art';n.src=esc(img);n.alt='';
+    n.onerror=function(){this.outerHTML='<div class="mp-art-ph" id="mp-art">🎵</div>';};
+    el.parentNode.replaceChild(n,el);
+  } else {el.className='mp-art-ph';el.id='mp-art';el.textContent='🎵';}
 }
 
-function updateFull() {
-  if (!cur) return;
-  document.getElementById('fp-name').textContent = cur.trackName || '—';
-  document.getElementById('fp-artist-lbl').textContent = cur.artistName || '—';
-  const img = cur.artworkUrl600 || (cur.artworkUrl100 || '').replace('100x100', '600x600').replace('t300x300', 't500x500');
-  const el = document.getElementById('fp-art');
-  if (img) {
-    const newEl = document.createElement('img');
-    newEl.className = 'fp-art'; newEl.id = 'fp-art'; newEl.src = esc(img); newEl.alt = '';
-    el.parentNode.replaceChild(newEl, el);
-  } else { el.className = 'fp-art-ph'; el.id = 'fp-art'; el.textContent = '🎵'; }
-  document.getElementById('fp-like').classList.toggle('liked', liked.some(l => l.trackId === cur.trackId));
+function updateFull(){
+  if(!cur)return;
+  document.getElementById('fp-name').textContent=cur.trackName||'—';
+  document.getElementById('fp-artist-lbl').textContent=cur.artistName||'—';
+  const img=cur.artworkUrl600||(cur.artworkUrl100||'').replace('100x100','600x600').replace('t300x300','t500x500');
+  const el=document.getElementById('fp-art');
+  if(img){
+    const n=document.createElement('img');
+    n.className='fp-art';n.id='fp-art';n.src=esc(img);n.alt='';
+    el.parentNode.replaceChild(n,el);
+  } else {el.className='fp-art-ph';el.id='fp-art';el.textContent='🎵';}
+  document.getElementById('fp-like').classList.toggle('liked',liked.some(l=>l.trackId===cur.trackId));
 }
 
-function updIcons() {
-  const PAUSE_ACC = '<rect x="6" y="4" width="4" height="16" fill="var(--acc)"/><rect x="14" y="4" width="4" height="16" fill="var(--acc)"/>';
-  const PAUSE_W = '<rect x="6" y="4" width="4" height="16" fill="white"/><rect x="14" y="4" width="4" height="16" fill="white"/>';
-  const PLAY_ACC = '<polygon points="5 3 19 12 5 21 5 3" fill="var(--acc)"/>';
-  const PLAY_W = '<polygon points="5 3 19 12 5 21 5 3" fill="white"/>';
-  document.getElementById('mp-ico').innerHTML = isPlaying ? PAUSE_ACC : PLAY_ACC;
-  document.getElementById('fp-ico').innerHTML = isPlaying ? PAUSE_W : PLAY_W;
-  const art = document.getElementById('fp-art');
-  if (art) art.classList.toggle('pulse', isPlaying);
+function updIcons(){
+  const PA='<rect x="6" y="4" width="4" height="16" fill="var(--acc)"/><rect x="14" y="4" width="4" height="16" fill="var(--acc)"/>';
+  const PW='<rect x="6" y="4" width="4" height="16" fill="white"/><rect x="14" y="4" width="4" height="16" fill="white"/>';
+  const PLA='<polygon points="5 3 19 12 5 21 5 3" fill="var(--acc)"/>';
+  const PLW='<polygon points="5 3 19 12 5 21 5 3" fill="white"/>';
+  document.getElementById('mp-ico').innerHTML=isPlaying?PA:PLA;
+  document.getElementById('fp-ico').innerHTML=isPlaying?PW:PLW;
+  const art=document.getElementById('fp-art');
+  if(art) art.classList.toggle('pulse',isPlaying);
 }
 
-function updRows() {
-  document.querySelectorAll('.srow').forEach(row => {
-    const rid = row.id.replace('row-', '');
-    const isCur = cur && String(cur.trackId) === rid;
-    row.classList.toggle('cur', isCur);
-    const bars = document.getElementById('bars-' + rid);
-    if (bars) bars.classList.toggle('on', isCur && isPlaying);
+function updRows(){
+  document.querySelectorAll('.srow').forEach(row=>{
+    const rid=row.id.replace('row-','');
+    const isCur=cur&&cur.trackId===rid;
+    row.classList.toggle('cur',isCur);
+    const bars=document.getElementById('bars-'+rid);
+    if(bars) bars.classList.toggle('on',isCur&&isPlaying);
   });
 }
 
-// ══ LIKE ══
-function toggleLike() {
-  if (!cur) return;
-  const idx = liked.findIndex(l => l.trackId === cur.trackId);
-  if (idx >= 0) { liked.splice(idx, 1); toast('💔 Retiré'); }
-  else { liked.unshift({ ...cur }); toast('❤️ Ajouté aux likés'); }
-  localStorage.setItem('ys_liked', JSON.stringify(liked));
-  document.getElementById('fp-like').classList.toggle('liked', idx < 0);
+// ══════════════════════════════════════════
+//  LIKE
+// ══════════════════════════════════════════
+function toggleLike(){
+  if(!cur)return;
+  const idx=liked.findIndex(l=>l.trackId===cur.trackId);
+  if(idx>=0){liked.splice(idx,1);toast('💔 Retiré');}
+  else{liked.unshift({...cur});toast('❤️ Ajouté aux likés');}
+  localStorage.setItem('ys_liked',JSON.stringify(liked));
+  document.getElementById('fp-like').classList.toggle('liked',idx<0);
 }
 
-function renderLiked() {
-  const list = document.getElementById('liked-list');
-  if (!liked.length) { list.innerHTML = mkEmpty('🎵', 'Aucun titre liké.<br>Appuie sur ❤️ dans le player.'); return; }
-  list.innerHTML = '';
-  liked.forEach((s, i) => {
-    if (s.type === 'sc') list.appendChild(mkSCRow(s, i, liked));
-    else list.appendChild(mkRow(s, i, liked));
-  });
+function renderLiked(){
+  const list=document.getElementById('liked-list');
+  if(!liked.length){list.innerHTML=mkEmpty('🎵','Aucun titre liké.<br>Appuie sur ❤️ dans le player.');return;}
+  list.innerHTML='';
+  liked.forEach((s,i)=>list.appendChild(mkRow(s,i,liked)));
 }
 
-// ══ HOME ══
-const TRENDING_Q = ['Drake', 'Jul', 'Ninho', 'The Weeknd', 'Burna Boy', 'Bad Bunny', 'Rema', 'Wizkid', 'Sch', 'Damso'];
-const DISC_Q = ['hits 2024', 'afrobeats', 'rnb soul', 'rap nouveautés', 'top pop'];
+// ══════════════════════════════════════════
+//  HOME
+// ══════════════════════════════════════════
+const TRENDING_Q=['Jul','Ninho','The Weeknd','Burna Boy','Bad Bunny','Drake','SCH','Damso','Rema','Kaaris'];
+const DISC_Q=['rap français 2024','afrobeats hits','rnb soul','drill france','pop français'];
 
-async function loadHome() {
-  // Trending : SoundCloud d'abord
+async function loadHome(){
   try {
-    const q = TRENDING_Q[Math.floor(Math.random() * TRENDING_Q.length)];
-    const songs = await searchSC(q, 10);
-    const wrap = document.getElementById('trending');
-    wrap.innerHTML = '';
-    if (songs.length) {
-      songs.forEach((s, i) => {
-        const img = s.artworkUrl100 || '';
-        const card = document.createElement('div');
-        card.className = 'acard';
-        card.innerHTML = `${img ? `<img class="acard-img" src="${esc(img)}" alt="">` : `<div class="acard-img-ph" style="background:${grad(s.trackId)}">🎵</div>`}<div class="acard-title">${esc(s.trackName || '')}</div><div class="acard-sub">${esc(s.artistName || '')}</div>`;
-        card.addEventListener('click', () => { queue = songs; qIdx = i; playSong(s); });
-        wrap.appendChild(card);
-      });
-    }
-  } catch (e) {}
-
-  // Découverte
+    const q=TRENDING_Q[Math.floor(Math.random()*TRENDING_Q.length)];
+    const songs=await searchSC(q,10);
+    const wrap=document.getElementById('trending');
+    wrap.innerHTML='';
+    (songs.length?songs:await itunesSearch(q,10)).forEach((s,i)=>{
+      const img=s.artworkUrl100||'';
+      const card=document.createElement('div');
+      card.className='acard';
+      card.innerHTML=`${img?`<img class="acard-img" src="${esc(img)}" alt="">`:`<div class="acard-img-ph" style="background:${grad(s.trackId)}">🎵</div>`}<div class="acard-title">${esc(s.trackName||'')}</div><div class="acard-sub">${esc(s.artistName||'')}</div>`;
+      card.addEventListener('click',()=>{queue=songs.length?songs:[];qIdx=i;playSong(s);});
+      wrap.appendChild(card);
+    });
+  }catch(e){}
   try {
-    const q = DISC_Q[Math.floor(Math.random() * DISC_Q.length)];
-    const songs = await searchSC(q, 8);
-    if (songs.length) {
-      renderSCList(songs, document.getElementById('discover'));
-    } else {
-      // Fallback iTunes
-      const it = await itunesSearch(q, 8);
-      renderList(it, document.getElementById('discover'));
-    }
-  } catch (e) {}
+    const q=DISC_Q[Math.floor(Math.random()*DISC_Q.length)];
+    let songs=await searchSC(q,8);
+    if(!songs.length) songs=await itunesSearch(q,8);
+    renderList(songs,document.getElementById('discover'));
+  }catch(e){}
 }
 
-// ══ UTILS ══
-function fmtTime(s) {
-  if (!s || isNaN(s)) return '0:00';
-  return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
-}
-function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-const GS = ['linear-gradient(135deg,#7c4dff,#e040fb)', 'linear-gradient(135deg,#ff6d00,#ff9800)', 'linear-gradient(135deg,#00acc1,#0097a7)', 'linear-gradient(135deg,#e91e63,#c2185b)', 'linear-gradient(135deg,#43a047,#2e7d32)'];
-function grad(id) { let h = 0; String(id).split('').forEach(c => h = (h * 31 + c.charCodeAt(0)) | 0); return GS[Math.abs(h) % GS.length]; }
-function mkLoader() { return '<div class="loader"><span></span><span></span><span></span></div>'; }
-function mkEmpty(ico, txt) { return `<div class="empty"><span class="ei">${ico}</span>${txt}</div>`; }
-let toastTmr = null;
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('on');
-  if (toastTmr) clearTimeout(toastTmr);
-  toastTmr = setTimeout(() => t.classList.remove('on'), 3000);
-}
+// ══════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════
+function fmtTime(s){if(!s||isNaN(s))return'0:00';return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');}
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+const GS=['linear-gradient(135deg,#7c4dff,#e040fb)','linear-gradient(135deg,#ff6d00,#ff9800)','linear-gradient(135deg,#00acc1,#0097a7)','linear-gradient(135deg,#e91e63,#c2185b)','linear-gradient(135deg,#43a047,#2e7d32)'];
+function grad(id){let h=0;String(id).split('').forEach(c=>h=(h*31+c.charCodeAt(0))|0);return GS[Math.abs(h)%GS.length];}
+function mkLoader(){return'<div class="loader"><span></span><span></span><span></span></div>';}
+function mkEmpty(ico,txt){return`<div class="empty"><span class="ei">${ico}</span>${txt}</div>`;}
+let toastTmr=null;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');if(toastTmr)clearTimeout(toastTmr);toastTmr=setTimeout(()=>t.classList.remove('on'),3000);}
 
 // ══ INIT ══
 loadHome();

@@ -252,56 +252,88 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
 'use strict';
 
 // ═══════════════════════════════════════
-//  PIPED — instances en rotation
-//  Si une instance est down, on passe à la suivante
+//  PIPED (YouTube sans pubs) + proxy CORS
 // ═══════════════════════════════════════
-// ═══════════════════════════════════════
-//  AUDIOMACK API
-//  - Recherche : api.audiomack.com/v1/music/search
-//  - Stream    : champ hls_stream_url ou stream_url dans la réponse
-//  - Pas de clé requise pour la lecture publique
-// ═══════════════════════════════════════
-const AM_BASE = 'https://api.audiomack.com/v1';
+const PIPED = [
+  'https://pipedapi.kavin.rocks',
+  'https://piped-api.garudalinux.org',
+  'https://api.piped.projectsegfau.lt',
+  'https://pipedapi.bocchi.rocks',
+];
+const CORS_PX = ['https://corsproxy.io/?', 'https://api.allorigins.win/raw?url='];
+
+async function pipedGet(path) {
+  // 1) essai direct sur chaque instance
+  for (const base of PIPED) {
+    try {
+      const r = await fetch(base + path, { signal: AbortSignal.timeout(6000) });
+      if (r.ok) return await r.json();
+    } catch(e) {}
+  }
+  // 2) si tout bloqué : proxy CORS
+  for (const px of CORS_PX) {
+    for (const base of PIPED) {
+      try {
+        const r = await fetch(px + encodeURIComponent(base + path), { signal: AbortSignal.timeout(8000) });
+        if (r.ok) return await r.json();
+      } catch(e) {}
+    }
+  }
+  return null;
+}
 
 async function searchAudiomack(q, limit = 20) {
+  // Recherche Piped (YouTube Music sans pubs)
+  const d = await pipedGet(`/search?q=${encodeURIComponent(q)}&filter=music_songs`);
+  if (d && d.items && d.items.length) {
+    return d.items
+      .filter(i => i.url)
+      .map(i => ({
+        trackId: i.url.replace('/watch?v=', ''),
+        trackName: i.title || '?',
+        artistName: i.uploaderName || '—',
+        artworkUrl100: i.thumbnail || '',
+        artworkUrl600: i.thumbnail || '',
+        trackTimeMillis: (i.duration || 0) * 1000,
+      }))
+      .filter(s => s.trackId)
+      .slice(0, limit);
+  }
+  // Fallback : iTunes pour les métadonnées
   try {
-    const r = await fetch(`${AM_BASE}/music/search?q=${encodeURIComponent(q)}&limit=${limit}&type=song`);
-    if (!r.ok) return [];
-    const d = await r.json();
-    const results = d.results || d.data || [];
-    return results.map(t => ({
-      trackId: String(t.id || t.slug || Math.random()),
-      trackName: t.title || '?',
-      artistName: t.artist || (t.uploader && t.uploader.name) || '—',
-      artworkUrl100: t.image || t.cover || '',
-      artworkUrl600: t.image || t.cover || '',
-      trackTimeMillis: (t.duration || 0) * 1000,
-      _amSlug: t.slug || '',
-      _amArtistSlug: (t.uploader && t.uploader.url_slug) || t.artist_slug || '',
-      _streamUrl: t.hls_stream_url || t.stream_url || '',
-    })).filter(s => s.trackId);
+    const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=${limit}&country=fr`);
+    const it = await r.json();
+    return (it.results || []).filter(t => t.trackName).map(t => ({
+      trackId: 'it_' + t.trackId,
+      trackName: t.trackName,
+      artistName: t.artistName || '—',
+      artworkUrl100: t.artworkUrl100 || '',
+      artworkUrl600: (t.artworkUrl100 || '').replace('100x100', '600x600'),
+      trackTimeMillis: t.trackTimeMillis || 0,
+      _itunes: true,
+    }));
   } catch(e) { return []; }
 }
 
 async function getAudiomackStream(song) {
-  // Si l'URL de stream est déjà dans la réponse de recherche
-  if (song._streamUrl) return song._streamUrl;
-  // Sinon appel à l'endpoint de la musique individuelle
-  try {
-    const r = await fetch(`${AM_BASE}/music/${song._amArtistSlug}/${song._amSlug}`);
-    if (!r.ok) return null;
-    const d = await r.json();
-    const t = d.results || d;
-    return t.hls_stream_url || t.stream_url || null;
-  } catch(e) { return null; }
+  // Si c'est un titre iTunes, chercher la vidéo YouTube via Piped
+  let videoId = song.trackId;
+  if (song._itunes) {
+    const d = await pipedGet(`/search?q=${encodeURIComponent(song.trackName + ' ' + song.artistName + ' audio')}&filter=music_songs`);
+    if (!d || !d.items || !d.items.length) return null;
+    videoId = d.items[0].url.replace('/watch?v=', '');
+  }
+  const d = await pipedGet(`/streams/${videoId}`);
+  if (!d || !d.audioStreams || !d.audioStreams.length) return null;
+  const sorted = [...d.audioStreams].sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+  return sorted[0].url || null;
 }
 
-// iTunes pour cover si Audiomack n'en a pas
 async function itunesCover(title, artist) {
   try {
-    const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(title+' '+artist)}&entity=song&limit=1`);
+    const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(title + ' ' + artist)}&entity=song&limit=1`);
     const d = await r.json();
-    if (d.results && d.results[0]) return d.results[0].artworkUrl100.replace('100x100','600x600');
+    if (d.results && d.results[0]) return d.results[0].artworkUrl100.replace('100x100', '600x600');
   } catch(e) {}
   return null;
 }

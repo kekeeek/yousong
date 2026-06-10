@@ -252,88 +252,144 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
 'use strict';
 
 // ═══════════════════════════════════════
-//  PIPED (YouTube sans pubs) + proxy CORS
+//  SOURCE 1 — musicapi.x007.workers.dev
+//  Search + stream 320kbps, CORS ouvert
 // ═══════════════════════════════════════
-const PIPED = [
-  'https://pipedapi.kavin.rocks',
-  'https://piped-api.garudalinux.org',
-  'https://api.piped.projectsegfau.lt',
-  'https://pipedapi.bocchi.rocks',
-];
-const CORS_PX = ['https://corsproxy.io/?', 'https://api.allorigins.win/raw?url='];
+const MAPI = 'https://musicapi.x007.workers.dev';
+const MAPI_ENGINES = ['gaama', 'seevn', 'hunjama', 'wunk'];
 
-async function pipedGet(path) {
-  // 1) essai direct sur chaque instance
-  for (const base of PIPED) {
+async function searchMusicApiX007(q, limit = 20) {
+  for (const engine of MAPI_ENGINES) {
     try {
-      const r = await fetch(base + path, { signal: AbortSignal.timeout(6000) });
-      if (r.ok) return await r.json();
+      const r = await fetch(`${MAPI}/search?q=${encodeURIComponent(q)}&searchEngine=${engine}`, { signal: AbortSignal.timeout(6000) });
+      if (!r.ok) continue;
+      const d = await r.json();
+      const items = d.response || d.results || [];
+      if (!items.length) continue;
+      return items.slice(0, limit).map(t => ({
+        trackId: `x007_${engine}_${t.id}`,
+        _x007id: t.id, _engine: engine,
+        trackName: t.title || t.name || '?',
+        artistName: t.artist || t.singers || '—',
+        artworkUrl100: t.image || t.thumbnail || '',
+        artworkUrl600: t.image || t.thumbnail || '',
+        trackTimeMillis: (t.duration || 0) * 1000,
+        _src: 'x007'
+      }));
+    } catch(e) { continue; }
+  }
+  return [];
+}
+
+async function getStreamX007(id, engine) {
+  try {
+    const r = await fetch(`${MAPI}/fetch?id=${encodeURIComponent(id)}&searchEngine=${engine}`, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return null;
+    const d = await r.json();
+    return d.response?.audio_url || d.response?.stream_url || d.response?.url || null;
+  } catch(e) { return null; }
+}
+
+// ═══════════════════════════════════════
+//  SOURCE 2 — JioSaavn (Vercel instance)
+//  CORS ouvert, search + stream MP3
+// ═══════════════════════════════════════
+const SAAVN_HOSTS = [
+  'https://jiosaavn-api-privatecvc2.vercel.app',
+  'https://saavn.dev',
+  'https://jiosaavn-api-rs.vercel.app',
+];
+
+async function searchSaavn(q, limit = 20) {
+  for (const host of SAAVN_HOSTS) {
+    try {
+      const r = await fetch(`${host}/api/search/songs?query=${encodeURIComponent(q)}&limit=${limit}`, { signal: AbortSignal.timeout(6000) });
+      if (!r.ok) continue;
+      const d = await r.json();
+      const items = d.data?.results || d.results || [];
+      if (!items.length) continue;
+      return items.map(t => ({
+        trackId: `saavn_${t.id}`,
+        _saavnId: t.id, _saavnHost: host,
+        trackName: t.name || t.title || '?',
+        artistName: t.artists?.primary?.[0]?.name || t.primaryArtists || '—',
+        artworkUrl100: t.image?.[1]?.url || t.image?.[0]?.url || '',
+        artworkUrl600: t.image?.[2]?.url || t.image?.[1]?.url || '',
+        trackTimeMillis: (t.duration || 0) * 1000,
+        _downloadUrls: t.downloadUrl || [],
+        _src: 'saavn'
+      }));
+    } catch(e) { continue; }
+  }
+  return [];
+}
+
+function getSaavnStreamUrl(song) {
+  const urls = song._downloadUrls || [];
+  for (const q of ['320kbps','160kbps','96kbps','48kbps']) {
+    const u = urls.find(x => x.quality === q);
+    if (u?.url) return u.url;
+  }
+  return urls[0]?.url || null;
+}
+
+// ═══════════════════════════════════════
+//  RECHERCHE COMBINÉE — x007 + saavn + iTunes
+// ═══════════════════════════════════════
+async function searchAudiomack(q, limit = 20) {
+  const [r1, r2] = await Promise.allSettled([
+    searchMusicApiX007(q, 12),
+    searchSaavn(q, 12),
+  ]);
+  const get = r => r.status === 'fulfilled' ? r.value : [];
+  let results = [...get(r1), ...get(r2)];
+
+  // Fallback iTunes si les 2 APIs vides
+  if (!results.length) {
+    try {
+      const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=${limit}&country=fr`);
+      const d = await r.json();
+      results = (d.results || []).filter(t => t.trackName).map(t => ({
+        trackId: 'it_' + t.trackId,
+        trackName: t.trackName,
+        artistName: t.artistName || '—',
+        artworkUrl100: t.artworkUrl100 || '',
+        artworkUrl600: (t.artworkUrl100 || '').replace('100x100','600x600'),
+        trackTimeMillis: t.trackTimeMillis || 0,
+        _src: 'itunes'
+      }));
     } catch(e) {}
   }
-  // 2) si tout bloqué : proxy CORS
-  for (const px of CORS_PX) {
-    for (const base of PIPED) {
-      try {
-        const r = await fetch(px + encodeURIComponent(base + path), { signal: AbortSignal.timeout(8000) });
-        if (r.ok) return await r.json();
-      } catch(e) {}
-    }
+  return results.slice(0, limit);
+}
+
+async function getAudiomackStream(song) {
+  // x007
+  if (song._src === 'x007' || song._x007id) {
+    const url = await getStreamX007(song._x007id, song._engine);
+    if (url) return url;
+  }
+  // saavn
+  if (song._src === 'saavn' || song._downloadUrls?.length) {
+    const url = getSaavnStreamUrl(song);
+    if (url) return url;
+  }
+  // iTunes → chercher sur saavn puis x007
+  if (song._src === 'itunes') {
+    const sq = `${song.trackName} ${song.artistName}`;
+    const sv = await searchSaavn(sq, 1);
+    if (sv.length) { const u = getSaavnStreamUrl(sv[0]); if (u) return u; }
+    const mx = await searchMusicApiX007(sq, 1);
+    if (mx.length) { const u = await getStreamX007(mx[0]._x007id, mx[0]._engine); if (u) return u; }
   }
   return null;
 }
 
-async function searchAudiomack(q, limit = 20) {
-  // Recherche Piped (YouTube Music sans pubs)
-  const d = await pipedGet(`/search?q=${encodeURIComponent(q)}&filter=music_songs`);
-  if (d && d.items && d.items.length) {
-    return d.items
-      .filter(i => i.url)
-      .map(i => ({
-        trackId: i.url.replace('/watch?v=', ''),
-        trackName: i.title || '?',
-        artistName: i.uploaderName || '—',
-        artworkUrl100: i.thumbnail || '',
-        artworkUrl600: i.thumbnail || '',
-        trackTimeMillis: (i.duration || 0) * 1000,
-      }))
-      .filter(s => s.trackId)
-      .slice(0, limit);
-  }
-  // Fallback : iTunes pour les métadonnées
-  try {
-    const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=${limit}&country=fr`);
-    const it = await r.json();
-    return (it.results || []).filter(t => t.trackName).map(t => ({
-      trackId: 'it_' + t.trackId,
-      trackName: t.trackName,
-      artistName: t.artistName || '—',
-      artworkUrl100: t.artworkUrl100 || '',
-      artworkUrl600: (t.artworkUrl100 || '').replace('100x100', '600x600'),
-      trackTimeMillis: t.trackTimeMillis || 0,
-      _itunes: true,
-    }));
-  } catch(e) { return []; }
-}
-
-async function getAudiomackStream(song) {
-  // Si c'est un titre iTunes, chercher la vidéo YouTube via Piped
-  let videoId = song.trackId;
-  if (song._itunes) {
-    const d = await pipedGet(`/search?q=${encodeURIComponent(song.trackName + ' ' + song.artistName + ' audio')}&filter=music_songs`);
-    if (!d || !d.items || !d.items.length) return null;
-    videoId = d.items[0].url.replace('/watch?v=', '');
-  }
-  const d = await pipedGet(`/streams/${videoId}`);
-  if (!d || !d.audioStreams || !d.audioStreams.length) return null;
-  const sorted = [...d.audioStreams].sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
-  return sorted[0].url || null;
-}
-
 async function itunesCover(title, artist) {
   try {
-    const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(title + ' ' + artist)}&entity=song&limit=1`);
+    const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(title+' '+artist)}&entity=song&limit=1`);
     const d = await r.json();
-    if (d.results && d.results[0]) return d.results[0].artworkUrl100.replace('100x100', '600x600');
+    if (d.results?.[0]) return d.results[0].artworkUrl100.replace('100x100','600x600');
   } catch(e) {}
   return null;
 }

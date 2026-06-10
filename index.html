@@ -252,104 +252,35 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
 'use strict';
 
 // ═══════════════════════════════════════
-//  SOURCE 1 — musicapi.x007.workers.dev
-//  Search + stream 320kbps, CORS ouvert
+//  ACROMUSIC — search + stream gratuit
+//  CORS ouvert, pas de clé requise
 // ═══════════════════════════════════════
-const MAPI = 'https://musicapi.x007.workers.dev';
-const MAPI_ENGINES = ['gaama', 'seevn', 'hunjama', 'wunk'];
+const ACRO = 'https://acromusic.pages.dev';
 
-async function searchMusicApiX007(q, limit = 20) {
-  for (const engine of MAPI_ENGINES) {
-    try {
-      const r = await fetch(`${MAPI}/search?q=${encodeURIComponent(q)}&searchEngine=${engine}`, { signal: AbortSignal.timeout(6000) });
-      if (!r.ok) continue;
-      const d = await r.json();
-      const items = d.response || d.results || [];
-      if (!items.length) continue;
-      return items.slice(0, limit).map(t => ({
-        trackId: `x007_${engine}_${t.id}`,
-        _x007id: t.id, _engine: engine,
-        trackName: t.title || t.name || '?',
-        artistName: t.artist || t.singers || '—',
-        artworkUrl100: t.image || t.thumbnail || '',
-        artworkUrl600: t.image || t.thumbnail || '',
-        trackTimeMillis: (t.duration || 0) * 1000,
-        _src: 'x007'
-      }));
-    } catch(e) { continue; }
-  }
-  return [];
-}
-
-async function getStreamX007(id, engine) {
-  try {
-    const r = await fetch(`${MAPI}/fetch?id=${encodeURIComponent(id)}&searchEngine=${engine}`, { signal: AbortSignal.timeout(8000) });
-    if (!r.ok) return null;
-    const d = await r.json();
-    return d.response?.audio_url || d.response?.stream_url || d.response?.url || null;
-  } catch(e) { return null; }
-}
-
-// ═══════════════════════════════════════
-//  SOURCE 2 — JioSaavn (Vercel instance)
-//  CORS ouvert, search + stream MP3
-// ═══════════════════════════════════════
-const SAAVN_HOSTS = [
-  'https://jiosaavn-api-privatecvc2.vercel.app',
-  'https://saavn.dev',
-  'https://jiosaavn-api-rs.vercel.app',
-];
-
-async function searchSaavn(q, limit = 20) {
-  for (const host of SAAVN_HOSTS) {
-    try {
-      const r = await fetch(`${host}/api/search/songs?query=${encodeURIComponent(q)}&limit=${limit}`, { signal: AbortSignal.timeout(6000) });
-      if (!r.ok) continue;
-      const d = await r.json();
-      const items = d.data?.results || d.results || [];
-      if (!items.length) continue;
-      return items.map(t => ({
-        trackId: `saavn_${t.id}`,
-        _saavnId: t.id, _saavnHost: host,
-        trackName: t.name || t.title || '?',
-        artistName: t.artists?.primary?.[0]?.name || t.primaryArtists || '—',
-        artworkUrl100: t.image?.[1]?.url || t.image?.[0]?.url || '',
-        artworkUrl600: t.image?.[2]?.url || t.image?.[1]?.url || '',
-        trackTimeMillis: (t.duration || 0) * 1000,
-        _downloadUrls: t.downloadUrl || [],
-        _src: 'saavn'
-      }));
-    } catch(e) { continue; }
-  }
-  return [];
-}
-
-function getSaavnStreamUrl(song) {
-  const urls = song._downloadUrls || [];
-  for (const q of ['320kbps','160kbps','96kbps','48kbps']) {
-    const u = urls.find(x => x.quality === q);
-    if (u?.url) return u.url;
-  }
-  return urls[0]?.url || null;
-}
-
-// ═══════════════════════════════════════
-//  RECHERCHE COMBINÉE — x007 + saavn + iTunes
-// ═══════════════════════════════════════
 async function searchAudiomack(q, limit = 20) {
-  const [r1, r2] = await Promise.allSettled([
-    searchMusicApiX007(q, 12),
-    searchSaavn(q, 12),
-  ]);
-  const get = r => r.status === 'fulfilled' ? r.value : [];
-  let results = [...get(r1), ...get(r2)];
-
-  // Fallback iTunes si les 2 APIs vides
-  if (!results.length) {
+  try {
+    const r = await fetch(`${ACRO}/api/search?q=${encodeURIComponent(q)}&limit=${limit}`, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) throw new Error('bad status');
+    const d = await r.json();
+    const items = d.results || d.data || d.songs || d.tracks || d || [];
+    if (!Array.isArray(items) || !items.length) throw new Error('empty');
+    return items.slice(0, limit).map(t => ({
+      trackId: 'acro_' + (t.id || t.videoId || Math.random()),
+      _acroId: t.id || t.videoId || '',
+      trackName: t.title || t.name || '?',
+      artistName: t.artist || t.authors?.[0]?.name || t.channel || '—',
+      artworkUrl100: t.thumbnail || t.image || t.cover || '',
+      artworkUrl600: t.thumbnail || t.image || t.cover || '',
+      trackTimeMillis: (t.duration || t.lengthSeconds || 0) * 1000,
+      _streamUrl: t.stream_url || t.audio_url || t.url || '',
+      _src: 'acro'
+    }));
+  } catch(e) {
+    // Fallback iTunes pour afficher au moins les résultats
     try {
       const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=${limit}&country=fr`);
       const d = await r.json();
-      results = (d.results || []).filter(t => t.trackName).map(t => ({
+      return (d.results || []).filter(t => t.trackName).map(t => ({
         trackId: 'it_' + t.trackId,
         trackName: t.trackName,
         artistName: t.artistName || '—',
@@ -358,30 +289,46 @@ async function searchAudiomack(q, limit = 20) {
         trackTimeMillis: t.trackTimeMillis || 0,
         _src: 'itunes'
       }));
-    } catch(e) {}
+    } catch(e2) { return []; }
   }
-  return results.slice(0, limit);
 }
 
 async function getAudiomackStream(song) {
-  // x007
-  if (song._src === 'x007' || song._x007id) {
-    const url = await getStreamX007(song._x007id, song._engine);
-    if (url) return url;
+  // Si stream URL déjà dans la réponse de recherche
+  if (song._streamUrl) return song._streamUrl;
+
+  // Sinon appel endpoint stream acromusic
+  if (song._src === 'acro' && song._acroId) {
+    try {
+      const r = await fetch(`${ACRO}/api/stream?id=${encodeURIComponent(song._acroId)}`, { signal: AbortSignal.timeout(8000) });
+      if (r.ok) {
+        const d = await r.json();
+        const url = d.url || d.stream_url || d.audio_url || d.link || null;
+        if (url) return url;
+      }
+    } catch(e) {}
+
+    // Essayer aussi avec le titre si l'id ne marche pas
+    try {
+      const r = await fetch(`${ACRO}/api/stream?q=${encodeURIComponent(song.trackName + ' ' + song.artistName)}`, { signal: AbortSignal.timeout(8000) });
+      if (r.ok) {
+        const d = await r.json();
+        return d.url || d.stream_url || d.audio_url || null;
+      }
+    } catch(e) {}
   }
-  // saavn
-  if (song._src === 'saavn' || song._downloadUrls?.length) {
-    const url = getSaavnStreamUrl(song);
-    if (url) return url;
-  }
-  // iTunes → chercher sur saavn puis x007
+
+  // iTunes → chercher sur acromusic
   if (song._src === 'itunes') {
-    const sq = `${song.trackName} ${song.artistName}`;
-    const sv = await searchSaavn(sq, 1);
-    if (sv.length) { const u = getSaavnStreamUrl(sv[0]); if (u) return u; }
-    const mx = await searchMusicApiX007(sq, 1);
-    if (mx.length) { const u = await getStreamX007(mx[0]._x007id, mx[0]._engine); if (u) return u; }
+    try {
+      const r = await fetch(`${ACRO}/api/stream?q=${encodeURIComponent(song.trackName + ' ' + song.artistName)}`, { signal: AbortSignal.timeout(8000) });
+      if (r.ok) {
+        const d = await r.json();
+        return d.url || d.stream_url || d.audio_url || null;
+      }
+    } catch(e) {}
   }
+
   return null;
 }
 

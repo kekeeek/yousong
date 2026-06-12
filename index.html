@@ -270,14 +270,13 @@ async function searchAudiomack(q, limit = 20) {
     const items = d.results || d.tracks || d.songs || d.data || [];
     if (!items.length) throw new Error('empty');
     return items.map(t => ({
-      trackId: t.id || t.track_id || ('fd_'+Math.random()),
-      _fdId: t.id || t.track_id || '',
+      trackId: t.id || ('fd_'+Math.random()),
+      _fdId: t.id || '',
       trackName: t.title || t.name || '?',
-      artistName: t.artist || t.artists || t.uploader || '—',
-      artworkUrl100: t.cover || t.thumbnail || t.image || t.artwork || '',
-      artworkUrl600: t.cover || t.thumbnail || t.image || t.artwork || '',
-      trackTimeMillis: (t.duration || 0) * 1000,
-      _streamUrl: t.stream_url || t.url || t.audio_url || '',
+      artistName: t.artist || t.artists || '—',
+      artworkUrl100: t.cover || t.album_art || t.thumbnail || '',
+      artworkUrl600: t.cover || t.album_art || t.thumbnail || '',
+      trackTimeMillis: t.duration_ms || 0,
       _src: 'freedify'
     }));
   } catch(e) {
@@ -328,32 +327,9 @@ async function playSong(s) {
   resetProg();
   toast('⏳ Chargement...');
 
-  // Essayer URL stream direct si dispo
-  let streamUrl = s._streamUrl || null;
-
-  // Sinon appeler Freedify pour le stream
-  if (!streamUrl && s._fdId) {
-    try {
-      const r = await fetch(`${FREEDIFY}/api/stream/${encodeURIComponent(s._fdId)}`, { signal: AbortSignal.timeout(10000) });
-      if (r.ok) {
-        const d = await r.json();
-        streamUrl = d.url || d.stream_url || d.audio_url || null;
-      }
-    } catch(e) {}
-  }
-
-  // Fallback : recherche Freedify par titre+artiste
-  if (!streamUrl) {
-    try {
-      const r = await fetch(`${FREEDIFY}/api/stream?q=${encodeURIComponent(s.trackName+' '+s.artistName)}`, { signal: AbortSignal.timeout(10000) });
-      if (r.ok) {
-        const d = await r.json();
-        streamUrl = d.url || d.stream_url || d.audio_url || null;
-      }
-    } catch(e) {}
-  }
-
-  if (!streamUrl) { toast('❌ Titre introuvable'); return; }
+  // URL stream Freedify : /api/stream/{id}?q={titre artiste}&source=tidal
+  const q = encodeURIComponent(s.trackName + ' ' + s.artistName);
+  const streamUrl = `${FREEDIFY}/api/stream/${s._fdId}?q=${q}&source=tidal`;
 
   if (!cur.artworkUrl600) {
     itunesCover(s.trackName, s.artistName).then(cover => {

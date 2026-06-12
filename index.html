@@ -123,7 +123,6 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
 </head>
 <body>
 
-<div id="yt-wrap" style="position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;pointer-events:none;"><div id="yt-player"></div></div>
 <div id="app">
   <div id="main">
 
@@ -257,72 +256,48 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
 //  + PIPED pour stream audio SANS IFRAME
 //  = ZERO pub car pas d'iframe YouTube
 // ═══════════════════════════════════════
-const YT_KEY = 'AIzaSyCkjiL7fFuQXIiW8R5AsmyqK_CNkYLvv70';
-// youtube-nocookie.com = cookies pub bloqués = moins de pubs
-let ytPlayer = null, ytReady = false, pendingVid = null;
-
-function onYouTubeIframeAPIReady() {
-  ytPlayer = new YT.Player('yt-player', {
-    height:'1', width:'1',
-    host:'https://www.youtube-nocookie.com',
-    playerVars:{ autoplay:0, controls:0, disablekb:1, fs:0, iv_load_policy:3, rel:0, modestbranding:1 },
-    events:{
-      onReady:()=>{ ytReady=true; if(pendingVid){ytPlayer.loadVideoById(pendingVid);pendingVid=null;} },
-      onStateChange:(e)=>{
-        if(e.data===YT.PlayerState.PLAYING){isPlaying=true;updIcons();updRows();startProgLoop();}
-        else if(e.data===YT.PlayerState.PAUSED){isPlaying=false;updIcons();updRows();stopProgLoop();}
-        else if(e.data===YT.PlayerState.ENDED){stopProgLoop();if(isRepeat){ytPlayer.seekTo(0,true);ytPlayer.playVideo();}else next();}
-      },
-      onError:()=>{ toast('\u23ed\ufe0f Titre suivant...'); setTimeout(next,1000); }
-    }
-  });
-}
+// ═══════════════════════════════════════
+//  FREEDIFY — ton serveur sur Render
+//  Stream MP3 direct, zéro pub, tout catalogue
+// ═══════════════════════════════════════
+const FREEDIFY = 'https://yousong-wz5k.onrender.com';
 
 async function searchAudiomack(q, limit = 20) {
   try {
-    const r = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&videoCategoryId=10&maxResults=${limit}&key=${YT_KEY}`,
-      { signal: AbortSignal.timeout(8000) }
-    );
-    if (!r.ok) throw new Error('yt');
+    const r = await fetch(`${FREEDIFY}/api/search?q=${encodeURIComponent(q)}&limit=${limit}`, { signal: AbortSignal.timeout(10000) });
+    if (!r.ok) throw new Error('freedify');
     const d = await r.json();
-    if (!d.items?.length) throw new Error('empty');
-    return d.items.map(i => ({
-      trackId: i.id.videoId,
-      trackName: i.snippet.title,
-      artistName: i.snippet.channelTitle,
-      artworkUrl100: i.snippet.thumbnails?.medium?.url || '',
-      artworkUrl600: i.snippet.thumbnails?.high?.url || '',
-      trackTimeMillis: 0,
-      _src: 'yt'
+    const items = d.results || d.tracks || d.songs || d.data || [];
+    if (!items.length) throw new Error('empty');
+    return items.map(t => ({
+      trackId: t.id || t.track_id || ('fd_'+Math.random()),
+      _fdId: t.id || t.track_id || '',
+      trackName: t.title || t.name || '?',
+      artistName: t.artist || t.artists || t.uploader || '—',
+      artworkUrl100: t.cover || t.thumbnail || t.image || t.artwork || '',
+      artworkUrl600: t.cover || t.thumbnail || t.image || t.artwork || '',
+      trackTimeMillis: (t.duration || 0) * 1000,
+      _streamUrl: t.stream_url || t.url || t.audio_url || '',
+      _src: 'freedify'
     }));
   } catch(e) {
-    // Fallback iTunes
+    // Fallback iTunes pour afficher les résultats
     try {
       const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=${limit}&country=fr`);
       const d = await r.json();
       return (d.results || []).filter(t => t.trackName).map(t => ({
         trackId: 'it_' + t.trackId,
+        _fdId: '',
         trackName: t.trackName,
         artistName: t.artistName || '—',
         artworkUrl100: t.artworkUrl100 || '',
         artworkUrl600: (t.artworkUrl100 || '').replace('100x100','600x600'),
         trackTimeMillis: t.trackTimeMillis || 0,
+        _streamUrl: '',
         _src: 'itunes'
       }));
     } catch(e2) { return []; }
   }
-}
-
-async function getVideoId(song) {
-  if (song._src === 'yt') return song.trackId;
-  try {
-    const r = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(song.trackName+' '+song.artistName+' audio')}&type=video&maxResults=1&key=${YT_KEY}`
-    );
-    const d = await r.json();
-    return d.items?.[0]?.id?.videoId || null;
-  } catch(e) { return null; }
 }
 
 async function itunesCover(title, artist) {
@@ -351,10 +326,34 @@ async function playSong(s) {
   updateMini(); updateFull();
   stopAudio();
   resetProg();
-  toast('\u23f3 Chargement...');
+  toast('⏳ Chargement...');
 
-  const videoId = await getVideoId(s);
-  if (!videoId) { toast('\u274c Titre introuvable'); return; }
+  // Essayer URL stream direct si dispo
+  let streamUrl = s._streamUrl || null;
+
+  // Sinon appeler Freedify pour le stream
+  if (!streamUrl && s._fdId) {
+    try {
+      const r = await fetch(`${FREEDIFY}/api/stream/${encodeURIComponent(s._fdId)}`, { signal: AbortSignal.timeout(10000) });
+      if (r.ok) {
+        const d = await r.json();
+        streamUrl = d.url || d.stream_url || d.audio_url || null;
+      }
+    } catch(e) {}
+  }
+
+  // Fallback : recherche Freedify par titre+artiste
+  if (!streamUrl) {
+    try {
+      const r = await fetch(`${FREEDIFY}/api/stream?q=${encodeURIComponent(s.trackName+' '+s.artistName)}`, { signal: AbortSignal.timeout(10000) });
+      if (r.ok) {
+        const d = await r.json();
+        streamUrl = d.url || d.stream_url || d.audio_url || null;
+      }
+    } catch(e) {}
+  }
+
+  if (!streamUrl) { toast('❌ Titre introuvable'); return; }
 
   if (!cur.artworkUrl600) {
     itunesCover(s.trackName, s.artistName).then(cover => {
@@ -362,9 +361,8 @@ async function playSong(s) {
     });
   }
 
-  if (ytReady) { ytPlayer.loadVideoById(videoId); ytPlayer.setVolume(parseInt(document.getElementById('vol-r').value)); }
-  else { pendingVid = videoId; }
-  toast('\u25b6\ufe0f ' + esc(s.trackName));
+  playUrl(streamUrl);
+  toast('▶️ ' + esc(s.trackName));
 }
 
 function playUrl(url) {
@@ -379,15 +377,14 @@ function playUrl(url) {
 }
 
 function stopAudio() {
-  if (ytReady && ytPlayer) { try { ytPlayer.stopVideo(); } catch(e){} }
   if (audio) { audio.pause(); audio.src = ''; audio = null; }
   stopProgLoop();
   isPlaying = false;
 }
 
 function togglePlay() {
-  if (!cur || !ytReady) return;
-  if (isPlaying) ytPlayer.pauseVideo(); else ytPlayer.playVideo();
+  if (!cur || !audio) return;
+  if (isPlaying) audio.pause(); else audio.play();
 }
 
 function next() {
@@ -397,8 +394,8 @@ function next() {
 }
 
 function prev() {
-  if (!cur || !ytReady) return;
-  if (ytPlayer.getCurrentTime() > 3) { ytPlayer.seekTo(0,true); return; }
+  if (!cur || !audio) return;
+  if (audio.currentTime > 3) { audio.currentTime = 0; return; }
   qIdx = (qIdx - 1 + queue.length) % queue.length;
   playSong(queue[qIdx]);
 }
@@ -408,13 +405,13 @@ function restartCurrent() {
 }
 
 function seek(e) {
-  if (!ytReady || !cur) return;
+  if (!audio || !audio.duration) return;
   const bar = document.getElementById('prog-bar');
   const pct = (e.clientX - bar.getBoundingClientRect().left) / bar.offsetWidth;
-  ytPlayer.seekTo(pct * ytPlayer.getDuration(), true);
+  audio.currentTime = pct * audio.duration;
 }
 
-function setVol(v) { if (ytReady) ytPlayer.setVolume(parseInt(v)); }
+function setVol(v) { if (audio) audio.volume = parseInt(v) / 100; }
 function toggleShuf() { isShuffle = !isShuffle; document.getElementById('shuf-btn').classList.toggle('on', isShuffle); }
 function toggleRep()  { isRepeat  = !isRepeat;  document.getElementById('rep-btn').classList.toggle('on', isRepeat); }
 function openFP()  { document.getElementById('full-p').classList.add('open'); }
@@ -426,16 +423,14 @@ function closeFP() { document.getElementById('full-p').classList.remove('open');
 function startProgLoop() {
   stopProgLoop();
   progLoop = setInterval(() => {
-    if (!ytReady || !cur) return;
-    try {
-      const pos = ytPlayer.getCurrentTime() || 0;
-      const dur = ytPlayer.getDuration() || 0;
-      if (dur > 0) {
-        document.getElementById('prog-fill').style.width = ((pos / dur) * 100) + '%';
-        document.getElementById('t-cur').textContent = fmtTime(pos);
-        document.getElementById('t-tot').textContent = fmtTime(dur);
-      }
-    } catch(e) {}
+    if (!audio || !cur) return;
+    const pos = audio.currentTime || 0;
+    const dur = audio.duration || 0;
+    if (dur > 0) {
+      document.getElementById('prog-fill').style.width = ((pos / dur) * 100) + '%';
+      document.getElementById('t-cur').textContent = fmtTime(pos);
+      document.getElementById('t-tot').textContent = fmtTime(dur);
+    }
   }, 500);
 }
 function stopProgLoop() { if (progLoop) { clearInterval(progLoop); progLoop = null; } }
@@ -658,6 +653,5 @@ function toast(msg) {
 // ═══════════════════════════════════════
 loadHome();
 </script>
-<script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>

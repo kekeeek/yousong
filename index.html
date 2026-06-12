@@ -123,6 +123,7 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
 </head>
 <body>
 
+<div id="yt-wrap" style="position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;pointer-events:none;"><div id="yt-player"></div></div>
 <div id="app">
   <div id="main">
 
@@ -257,21 +258,24 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
 //  = ZERO pub car pas d'iframe YouTube
 // ═══════════════════════════════════════
 const YT_KEY = 'AIzaSyCkjiL7fFuQXIiW8R5AsmyqK_CNkYLvv70';
-const PIPED = [
-  'https://pipedapi.kavin.rocks',
-  'https://piped-api.garudalinux.org',
-  'https://api.piped.projectsegfau.lt',
-  'https://pipedapi.bocchi.rocks',
-];
+// youtube-nocookie.com = cookies pub bloqués = moins de pubs
+let ytPlayer = null, ytReady = false, pendingVid = null;
 
-async function pipedGet(path) {
-  for (const base of PIPED) {
-    try {
-      const r = await fetch(base + path, { signal: AbortSignal.timeout(7000) });
-      if (r.ok) return await r.json();
-    } catch(e) {}
-  }
-  return null;
+function onYouTubeIframeAPIReady() {
+  ytPlayer = new YT.Player('yt-player', {
+    height:'1', width:'1',
+    host:'https://www.youtube-nocookie.com',
+    playerVars:{ autoplay:0, controls:0, disablekb:1, fs:0, iv_load_policy:3, rel:0, modestbranding:1 },
+    events:{
+      onReady:()=>{ ytReady=true; if(pendingVid){ytPlayer.loadVideoById(pendingVid);pendingVid=null;} },
+      onStateChange:(e)=>{
+        if(e.data===YT.PlayerState.PLAYING){isPlaying=true;updIcons();updRows();startProgLoop();}
+        else if(e.data===YT.PlayerState.PAUSED){isPlaying=false;updIcons();updRows();stopProgLoop();}
+        else if(e.data===YT.PlayerState.ENDED){stopProgLoop();if(isRepeat){ytPlayer.seekTo(0,true);ytPlayer.playVideo();}else next();}
+      },
+      onError:()=>{ toast('\u23ed\ufe0f Titre suivant...'); setTimeout(next,1000); }
+    }
+  });
 }
 
 async function searchAudiomack(q, limit = 20) {
@@ -310,24 +314,15 @@ async function searchAudiomack(q, limit = 20) {
   }
 }
 
-async function getAudiomackStream(song) {
-  let videoId = song.trackId;
-  // Si iTunes → trouver la vidéo YT d'abord
-  if (song._src === 'itunes') {
-    try {
-      const r = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(song.trackName+' '+song.artistName)}&type=video&maxResults=1&key=${YT_KEY}`
-      );
-      const d = await r.json();
-      if (!d.items?.[0]) return null;
-      videoId = d.items[0].id.videoId;
-    } catch(e) { return null; }
-  }
-  // Piped → URL audio MP3 directe, ZERO iframe, ZERO pub
-  const d = await pipedGet(`/streams/${videoId}`);
-  if (!d?.audioStreams?.length) return null;
-  const sorted = [...d.audioStreams].sort((a,b) => (b.bitrate||0)-(a.bitrate||0));
-  return sorted[0].url || null;
+async function getVideoId(song) {
+  if (song._src === 'yt') return song.trackId;
+  try {
+    const r = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(song.trackName+' '+song.artistName+' audio')}&type=video&maxResults=1&key=${YT_KEY}`
+    );
+    const d = await r.json();
+    return d.items?.[0]?.id?.videoId || null;
+  } catch(e) { return null; }
 }
 
 async function itunesCover(title, artist) {
@@ -356,20 +351,20 @@ async function playSong(s) {
   updateMini(); updateFull();
   stopAudio();
   resetProg();
-  toast('⏳ Chargement...');
+  toast('\u23f3 Chargement...');
 
-  const streamUrl = await getAudiomackStream(s);
-  if (!streamUrl) { toast('❌ Titre introuvable'); return; }
+  const videoId = await getVideoId(s);
+  if (!videoId) { toast('\u274c Titre introuvable'); return; }
 
-  // Enrichir la cover si besoin
   if (!cur.artworkUrl600) {
     itunesCover(s.trackName, s.artistName).then(cover => {
       if (cover) { cur.artworkUrl600 = cover; cur.artworkUrl100 = cover; updateFull(); }
     });
   }
 
-  playUrl(streamUrl);
-  toast('▶️ ' + esc(s.trackName));
+  if (ytReady) { ytPlayer.loadVideoById(videoId); ytPlayer.setVolume(parseInt(document.getElementById('vol-r').value)); }
+  else { pendingVid = videoId; }
+  toast('\u25b6\ufe0f ' + esc(s.trackName));
 }
 
 function playUrl(url) {
@@ -384,14 +379,15 @@ function playUrl(url) {
 }
 
 function stopAudio() {
+  if (ytReady && ytPlayer) { try { ytPlayer.stopVideo(); } catch(e){} }
   if (audio) { audio.pause(); audio.src = ''; audio = null; }
   stopProgLoop();
   isPlaying = false;
 }
 
 function togglePlay() {
-  if (!cur || !audio) return;
-  if (isPlaying) audio.pause(); else audio.play();
+  if (!cur || !ytReady) return;
+  if (isPlaying) ytPlayer.pauseVideo(); else ytPlayer.playVideo();
 }
 
 function next() {
@@ -401,8 +397,8 @@ function next() {
 }
 
 function prev() {
-  if (!cur || !audio) return;
-  if (audio.currentTime > 3) { audio.currentTime = 0; return; }
+  if (!cur || !ytReady) return;
+  if (ytPlayer.getCurrentTime() > 3) { ytPlayer.seekTo(0,true); return; }
   qIdx = (qIdx - 1 + queue.length) % queue.length;
   playSong(queue[qIdx]);
 }
@@ -412,13 +408,13 @@ function restartCurrent() {
 }
 
 function seek(e) {
-  if (!audio || !audio.duration) return;
+  if (!ytReady || !cur) return;
   const bar = document.getElementById('prog-bar');
   const pct = (e.clientX - bar.getBoundingClientRect().left) / bar.offsetWidth;
-  audio.currentTime = pct * audio.duration;
+  ytPlayer.seekTo(pct * ytPlayer.getDuration(), true);
 }
 
-function setVol(v) { if (audio) audio.volume = parseInt(v) / 100; }
+function setVol(v) { if (ytReady) ytPlayer.setVolume(parseInt(v)); }
 function toggleShuf() { isShuffle = !isShuffle; document.getElementById('shuf-btn').classList.toggle('on', isShuffle); }
 function toggleRep()  { isRepeat  = !isRepeat;  document.getElementById('rep-btn').classList.toggle('on', isRepeat); }
 function openFP()  { document.getElementById('full-p').classList.add('open'); }
@@ -430,14 +426,16 @@ function closeFP() { document.getElementById('full-p').classList.remove('open');
 function startProgLoop() {
   stopProgLoop();
   progLoop = setInterval(() => {
-    if (!audio) return;
-    const pos = audio.currentTime || 0;
-    const dur = audio.duration || 0;
-    if (dur > 0) {
-      document.getElementById('prog-fill').style.width = ((pos / dur) * 100) + '%';
-      document.getElementById('t-cur').textContent = fmtTime(pos);
-      document.getElementById('t-tot').textContent = fmtTime(dur);
-    }
+    if (!ytReady || !cur) return;
+    try {
+      const pos = ytPlayer.getCurrentTime() || 0;
+      const dur = ytPlayer.getDuration() || 0;
+      if (dur > 0) {
+        document.getElementById('prog-fill').style.width = ((pos / dur) * 100) + '%';
+        document.getElementById('t-cur').textContent = fmtTime(pos);
+        document.getElementById('t-tot').textContent = fmtTime(dur);
+      }
+    } catch(e) {}
   }, 500);
 }
 function stopProgLoop() { if (progLoop) { clearInterval(progLoop); progLoop = null; } }
@@ -660,5 +658,6 @@ function toast(msg) {
 // ═══════════════════════════════════════
 loadHome();
 </script>
+<script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>

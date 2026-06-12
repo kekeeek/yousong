@@ -252,31 +252,48 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
 'use strict';
 
 // ═══════════════════════════════════════
-//  ACROMUSIC — search + stream gratuit
-//  CORS ouvert, pas de clé requise
+//  YOUTUBE SEARCH (clé = recherche only)
+//  + PIPED pour stream audio SANS IFRAME
+//  = ZERO pub car pas d'iframe YouTube
 // ═══════════════════════════════════════
-const ACRO = 'https://acromusic.pages.dev';
+const YT_KEY = 'AIzaSyCkjiL7fFuQXIiW8R5AsmyqK_CNkYLvv70';
+const PIPED = [
+  'https://pipedapi.kavin.rocks',
+  'https://piped-api.garudalinux.org',
+  'https://api.piped.projectsegfau.lt',
+  'https://pipedapi.bocchi.rocks',
+];
+
+async function pipedGet(path) {
+  for (const base of PIPED) {
+    try {
+      const r = await fetch(base + path, { signal: AbortSignal.timeout(7000) });
+      if (r.ok) return await r.json();
+    } catch(e) {}
+  }
+  return null;
+}
 
 async function searchAudiomack(q, limit = 20) {
   try {
-    const r = await fetch(`${ACRO}/api/search?q=${encodeURIComponent(q)}&limit=${limit}`, { signal: AbortSignal.timeout(8000) });
-    if (!r.ok) throw new Error('bad status');
+    const r = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&videoCategoryId=10&maxResults=${limit}&key=${YT_KEY}`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+    if (!r.ok) throw new Error('yt');
     const d = await r.json();
-    const items = d.results || d.data || d.songs || d.tracks || d || [];
-    if (!Array.isArray(items) || !items.length) throw new Error('empty');
-    return items.slice(0, limit).map(t => ({
-      trackId: 'acro_' + (t.id || t.videoId || Math.random()),
-      _acroId: t.id || t.videoId || '',
-      trackName: t.title || t.name || '?',
-      artistName: t.artist || t.authors?.[0]?.name || t.channel || '—',
-      artworkUrl100: t.thumbnail || t.image || t.cover || '',
-      artworkUrl600: t.thumbnail || t.image || t.cover || '',
-      trackTimeMillis: (t.duration || t.lengthSeconds || 0) * 1000,
-      _streamUrl: t.stream_url || t.audio_url || t.url || '',
-      _src: 'acro'
+    if (!d.items?.length) throw new Error('empty');
+    return d.items.map(i => ({
+      trackId: i.id.videoId,
+      trackName: i.snippet.title,
+      artistName: i.snippet.channelTitle,
+      artworkUrl100: i.snippet.thumbnails?.medium?.url || '',
+      artworkUrl600: i.snippet.thumbnails?.high?.url || '',
+      trackTimeMillis: 0,
+      _src: 'yt'
     }));
   } catch(e) {
-    // Fallback iTunes pour afficher au moins les résultats
+    // Fallback iTunes
     try {
       const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=${limit}&country=fr`);
       const d = await r.json();
@@ -294,42 +311,23 @@ async function searchAudiomack(q, limit = 20) {
 }
 
 async function getAudiomackStream(song) {
-  // Si stream URL déjà dans la réponse de recherche
-  if (song._streamUrl) return song._streamUrl;
-
-  // Sinon appel endpoint stream acromusic
-  if (song._src === 'acro' && song._acroId) {
-    try {
-      const r = await fetch(`${ACRO}/api/stream?id=${encodeURIComponent(song._acroId)}`, { signal: AbortSignal.timeout(8000) });
-      if (r.ok) {
-        const d = await r.json();
-        const url = d.url || d.stream_url || d.audio_url || d.link || null;
-        if (url) return url;
-      }
-    } catch(e) {}
-
-    // Essayer aussi avec le titre si l'id ne marche pas
-    try {
-      const r = await fetch(`${ACRO}/api/stream?q=${encodeURIComponent(song.trackName + ' ' + song.artistName)}`, { signal: AbortSignal.timeout(8000) });
-      if (r.ok) {
-        const d = await r.json();
-        return d.url || d.stream_url || d.audio_url || null;
-      }
-    } catch(e) {}
-  }
-
-  // iTunes → chercher sur acromusic
+  let videoId = song.trackId;
+  // Si iTunes → trouver la vidéo YT d'abord
   if (song._src === 'itunes') {
     try {
-      const r = await fetch(`${ACRO}/api/stream?q=${encodeURIComponent(song.trackName + ' ' + song.artistName)}`, { signal: AbortSignal.timeout(8000) });
-      if (r.ok) {
-        const d = await r.json();
-        return d.url || d.stream_url || d.audio_url || null;
-      }
-    } catch(e) {}
+      const r = await fetch(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(song.trackName+' '+song.artistName)}&type=video&maxResults=1&key=${YT_KEY}`
+      );
+      const d = await r.json();
+      if (!d.items?.[0]) return null;
+      videoId = d.items[0].id.videoId;
+    } catch(e) { return null; }
   }
-
-  return null;
+  // Piped → URL audio MP3 directe, ZERO iframe, ZERO pub
+  const d = await pipedGet(`/streams/${videoId}`);
+  if (!d?.audioStreams?.length) return null;
+  const sorted = [...d.audioStreams].sort((a,b) => (b.bitrate||0)-(a.bitrate||0));
+  return sorted[0].url || null;
 }
 
 async function itunesCover(title, artist) {

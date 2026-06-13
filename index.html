@@ -257,46 +257,81 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
 //  = ZERO pub car pas d'iframe YouTube
 // ═══════════════════════════════════════
 // ═══════════════════════════════════════
-//  FREEDIFY — ton serveur sur Render
-//  Stream MP3 direct, zéro pub, tout catalogue
+//  MUSICAPI x007 — 320kbps, no login
+//  Search: /search?q=...&searchEngine=seevn
+//  Stream: /fetch?id=...
 // ═══════════════════════════════════════
-const FREEDIFY = 'https://yousong-wz5k.onrender.com';
+const X007 = 'https://musicapi.x007.workers.dev';
+const ENGINES = ['seevn', 'wunk', 'hunjama', 'mtmusic'];
 
 async function searchAudiomack(q, limit = 20) {
-  try {
-    const r = await fetch(`${FREEDIFY}/api/search?q=${encodeURIComponent(q)}&limit=${limit}`, { signal: AbortSignal.timeout(10000) });
-    if (!r.ok) throw new Error('freedify');
-    const d = await r.json();
-    const items = d.results || d.tracks || d.songs || d.data || [];
-    if (!items.length) throw new Error('empty');
-    return items.map(t => ({
-      trackId: t.id || ('fd_'+Math.random()),
-      _fdId: t.id || '',
-      trackName: t.title || t.name || '?',
-      artistName: t.artist || t.artists || '—',
-      artworkUrl100: t.cover || t.album_art || t.thumbnail || '',
-      artworkUrl600: t.cover || t.album_art || t.thumbnail || '',
-      trackTimeMillis: t.duration_ms || 0,
-      _src: 'freedify'
-    }));
-  } catch(e) {
-    // Fallback iTunes pour afficher les résultats
+  // Essayer chaque engine jusqu'à en trouver un qui répond
+  for (const engine of ENGINES) {
     try {
-      const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=${limit}&country=fr`);
+      const r = await fetch(`${X007}/search?q=${encodeURIComponent(q)}&searchEngine=${engine}`, { signal: AbortSignal.timeout(8000) });
+      if (!r.ok) continue;
       const d = await r.json();
-      return (d.results || []).filter(t => t.trackName).map(t => ({
-        trackId: 'it_' + t.trackId,
-        _fdId: '',
-        trackName: t.trackName,
-        artistName: t.artistName || '—',
-        artworkUrl100: t.artworkUrl100 || '',
-        artworkUrl600: (t.artworkUrl100 || '').replace('100x100','600x600'),
-        trackTimeMillis: t.trackTimeMillis || 0,
-        _streamUrl: '',
-        _src: 'itunes'
+      const items = d.response || [];
+      if (!items.length) continue;
+      return items.slice(0, limit).map(t => ({
+        trackId: `x007_${engine}_${t.id}`,
+        _id: t.id,
+        _engine: engine,
+        trackName: t.title || '?',
+        artistName: t.more_info?.primary_artists || t.subtitle || '—',
+        artworkUrl100: t.img || t.image || '',
+        artworkUrl600: t.img || t.image || '',
+        trackTimeMillis: 0,
+        _src: 'x007'
       }));
-    } catch(e2) { return []; }
+    } catch(e) { continue; }
   }
+  // Fallback iTunes
+  try {
+    const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=${limit}&country=fr`);
+    const d = await r.json();
+    return (d.results || []).filter(t => t.trackName).map(t => ({
+      trackId: 'it_' + t.trackId,
+      _id: '', _engine: '',
+      trackName: t.trackName,
+      artistName: t.artistName || '—',
+      artworkUrl100: t.artworkUrl100 || '',
+      artworkUrl600: (t.artworkUrl100 || '').replace('100x100','600x600'),
+      trackTimeMillis: t.trackTimeMillis || 0,
+      _src: 'itunes'
+    }));
+  } catch(e) { return []; }
+}
+
+async function getAudiomackStream(song) {
+  // Si iTunes → chercher sur x007 d'abord
+  let id = song._id;
+  let engine = song._engine;
+
+  if (song._src === 'itunes' || !id) {
+    for (const eng of ENGINES) {
+      try {
+        const r = await fetch(`${X007}/search?q=${encodeURIComponent(song.trackName+' '+song.artistName)}&searchEngine=${eng}`, { signal: AbortSignal.timeout(8000) });
+        if (!r.ok) continue;
+        const d = await r.json();
+        if (d.response && d.response[0]) {
+          id = d.response[0].id;
+          engine = eng;
+          break;
+        }
+      } catch(e) { continue; }
+    }
+  }
+
+  if (!id) return null;
+
+  // Fetch l'URL de stream
+  try {
+    const r = await fetch(`${X007}/fetch?id=${encodeURIComponent(id)}`, { signal: AbortSignal.timeout(10000) });
+    if (!r.ok) return null;
+    const d = await r.json();
+    return d.response || null;
+  } catch(e) { return null; }
 }
 
 async function itunesCover(title, artist) {
@@ -329,7 +364,8 @@ async function playSong(s) {
 
   // URL stream Freedify : /api/stream/{id}?q={titre artiste}&source=tidal
   const q = encodeURIComponent(s.trackName + ' ' + s.artistName);
-  const streamUrl = `${FREEDIFY}/api/stream/${s._fdId}?q=${q}&source=tidal`;
+  const streamUrl = await getAudiomackStream(s);
+  if (!streamUrl) { toast('❌ Titre introuvable'); return; }
 
   if (!cur.artworkUrl600) {
     itunesCover(s.trackName, s.artistName).then(cover => {

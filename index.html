@@ -257,103 +257,80 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
 //  = ZERO pub car pas d'iframe YouTube
 // ═══════════════════════════════════════
 // ═══════════════════════════════════════
-//  INVIDIOUS — YouTube sans pubs, CORS ouvert
-//  Plusieurs instances en rotation
+//  YOUTUBE DATA API v3
+//  Clé perso = quota 10k/jour
+//  Lecture via iframe youtube-nocookie
 // ═══════════════════════════════════════
-const INVIDIOUS = [
-  'https://inv.nadeko.net',
-  'https://inv.thepixora.com',
-  'https://yewtu.be',
-  'https://invidious.nerdvpn.de',
-  'https://invidious.privacydev.net',
-  'https://invidious.projectsegfau.lt',
-];
-let invIdx = 0;
+const YT_KEY = 'AIzaSyCkjiL7fFuQXIiW8R5AsmyqK_CNkYLvv70';
+let ytPlayer = null, ytReady = false, pendingVid = null;
 
-// Proxies CORS publics pour contourner les restrictions
-const CORS_PX = [
-  'https://corsproxy.io/?url=',
-  'https://api.allorigins.win/raw?url=',
-  'https://proxy.cors.sh/',
-];
-
-async function invGet(path) {
-  for (let i = 0; i < INVIDIOUS.length; i++) {
-    const base = INVIDIOUS[(invIdx + i) % INVIDIOUS.length];
-    const url = base + path;
-    // Essai direct d'abord
-    try {
-      const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
-      if (r.ok) { invIdx = (invIdx + i) % INVIDIOUS.length; return await r.json(); }
-    } catch(e) {}
-    // Sinon via proxy CORS
-    for (const px of CORS_PX) {
-      try {
-        const r = await fetch(px + encodeURIComponent(url), { signal: AbortSignal.timeout(7000) });
-        if (r.ok) { invIdx = (invIdx + i) % INVIDIOUS.length; return await r.json(); }
-      } catch(e) { continue; }
+function onYouTubeIframeAPIReady() {
+  ytPlayer = new YT.Player('yt-player', {
+    height:'1', width:'1',
+    host:'https://www.youtube-nocookie.com',
+    playerVars:{ autoplay:0, controls:0, disablekb:1, fs:0, iv_load_policy:3, rel:0, modestbranding:1 },
+    events:{
+      onReady:()=>{ ytReady=true; ytPlayer.setVolume(80); if(pendingVid){ytPlayer.loadVideoById(pendingVid);pendingVid=null;} },
+      onStateChange:(e)=>{
+        if(e.data===YT.PlayerState.PLAYING){isPlaying=true;updIcons();updRows();startProgLoop();}
+        else if(e.data===YT.PlayerState.PAUSED){isPlaying=false;updIcons();updRows();stopProgLoop();}
+        else if(e.data===YT.PlayerState.ENDED){stopProgLoop();if(isRepeat){ytPlayer.seekTo(0,true);ytPlayer.playVideo();}else next();}
+      },
+      onError:()=>{ toast('⏭️ Titre suivant...'); setTimeout(next,800); }
     }
-  }
-  return null;
+  });
 }
 
-async function searchAudiomack(q, limit = 20) {
-  // Recherche Invidious — filtre musique uniquement
-  const d = await invGet(`/api/v1/search?q=${encodeURIComponent(q + ' audio')}&type=video&sort_by=relevance`);
-  if (d && d.length) {
-    const filtered = d
-      .filter(v => {
-        const t = v.title.toLowerCase();
-        // Exclure lives, clips vidéo, interviews
-        return !t.includes('live') && !t.includes('concert') && !t.includes('interview') && !t.includes('karaoke') && v.lengthSeconds > 60 && v.lengthSeconds < 600;
-      })
-      .slice(0, limit)
-      .map(v => ({
-        trackId: v.videoId,
-        trackName: v.title.replace(/\(official\s*(audio|video|music video)?\)/gi,'').replace(/\[official.*?\]/gi,'').replace(/official audio/gi,'').trim(),
-        artistName: v.author || '—',
-        artworkUrl100: v.videoThumbnails?.find(t=>t.quality==='medium')?.url || v.videoThumbnails?.[0]?.url || '',
-        artworkUrl600: v.videoThumbnails?.find(t=>t.quality==='maxres')?.url || v.videoThumbnails?.[0]?.url || '',
-        trackTimeMillis: (v.lengthSeconds || 0) * 1000,
-        _src: 'inv'
-      }));
-    if (filtered.length) return filtered;
-  }
-  // Fallback iTunes
+async function searchAudiomack(q, limit=20) {
+  // Ajouter "audio" pour cibler les tracks audio pas les clips
+  const query = q + ' audio';
   try {
-    const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=${limit}&country=fr`);
+    const r = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&maxResults=${limit}&key=${YT_KEY}`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+    if (!r.ok) throw new Error('quota');
     const d = await r.json();
-    return (d.results||[]).filter(t=>t.trackName).map(t=>({
-      trackId:'it_'+t.trackId, trackName:t.trackName,
-      artistName:t.artistName||'—',
-      artworkUrl100:t.artworkUrl100||'',
-      artworkUrl600:(t.artworkUrl100||'').replace('100x100','600x600'),
-      trackTimeMillis:t.trackTimeMillis||0, _src:'itunes'
+    if (d.error) throw new Error(d.error.message);
+    return (d.items||[]).map(i => ({
+      trackId: i.id.videoId,
+      trackName: i.snippet.title
+        .replace(/\(official\s*(audio|video|music video|lyric)?\)/gi,'')
+        .replace(/\[official.*?\]/gi,'')
+        .replace(/official\s*audio/gi,'')
+        .replace(/\s+/g,' ').trim(),
+      artistName: i.snippet.channelTitle.replace(/\s*(VEVO|Official|Music|Records|Topic)\s*/gi,'').trim()||'—',
+      artworkUrl100: i.snippet.thumbnails?.medium?.url||'',
+      artworkUrl600: i.snippet.thumbnails?.high?.url||'',
+      trackTimeMillis: 0,
+      _src: 'yt'
     }));
-  } catch(e){ return []; }
+  } catch(e) {
+    // Fallback iTunes si quota dépassé
+    try {
+      const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=${limit}&country=fr`);
+      const d = await r.json();
+      return (d.results||[]).filter(t=>t.trackName).map(t=>({
+        trackId:'it_'+t.trackId, trackName:t.trackName,
+        artistName:t.artistName||'—',
+        artworkUrl100:t.artworkUrl100||'',
+        artworkUrl600:(t.artworkUrl100||'').replace('100x100','600x600'),
+        trackTimeMillis:t.trackTimeMillis||0, _src:'itunes'
+      }));
+    } catch(e2){ return []; }
+  }
 }
 
 async function getAudiomackStream(song) {
-  let videoId = song.trackId;
-
-  // Si iTunes → chercher sur Invidious
-  if (song._src === 'itunes') {
-    const d = await invGet(`/api/v1/search?q=${encodeURIComponent(song.trackName+' '+song.artistName+' audio')}&type=video`);
-    if (!d || !d.length) return null;
-    videoId = d[0].videoId;
-  }
-
-  // Récupérer les URLs audio via Invidious
-  const d = await invGet(`/api/v1/videos/${videoId}`);
-  if (!d || !d.adaptiveFormats) return null;
-
-  // Prendre le meilleur format audio (opus ou aac)
-  const audioFormats = d.adaptiveFormats
-    .filter(f => f.type && f.type.includes('audio'))
-    .sort((a,b) => (b.bitrate||0) - (a.bitrate||0));
-
-  if (!audioFormats.length) return null;
-  return audioFormats[0].url || null;
+  if (song._src === 'yt') return song.trackId;
+  // iTunes → chercher sur YT
+  try {
+    const r = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(song.trackName+' '+song.artistName+' audio')}&type=video&videoCategoryId=10&maxResults=1&key=${YT_KEY}`
+    );
+    const d = await r.json();
+    return d.items?.[0]?.id?.videoId || null;
+  } catch(e) { return null; }
 }
 
 async function itunesCover(title, artist) {
@@ -386,8 +363,8 @@ async function playSong(s) {
 
   // URL stream Freedify : /api/stream/{id}?q={titre artiste}&source=tidal
   const q = encodeURIComponent(s.trackName + ' ' + s.artistName);
-  const streamUrl = await getAudiomackStream(s);
-  if (!streamUrl) { toast('❌ Titre introuvable'); return; }
+  const videoId = await getAudiomackStream(s);
+  if (!videoId) { toast('❌ Titre introuvable'); return; }
 
   if (!cur.artworkUrl600) {
     itunesCover(s.trackName, s.artistName).then(cover => {
@@ -395,7 +372,8 @@ async function playSong(s) {
     });
   }
 
-  playUrl(streamUrl);
+  if (ytReady) { ytPlayer.loadVideoById(videoId); ytPlayer.setVolume(parseInt(document.getElementById('vol-r').value)); }
+  else { pendingVid = videoId; }
   toast('▶️ ' + esc(s.trackName));
 }
 
@@ -411,14 +389,15 @@ function playUrl(url) {
 }
 
 function stopAudio() {
+  if (ytReady && ytPlayer) { try { ytPlayer.stopVideo(); } catch(e){} }
   if (audio) { audio.pause(); audio.src = ''; audio = null; }
   stopProgLoop();
   isPlaying = false;
 }
 
 function togglePlay() {
-  if (!cur || !audio) return;
-  if (isPlaying) audio.pause(); else audio.play();
+  if (!cur || !ytReady) return;
+  if (isPlaying) ytPlayer.pauseVideo(); else ytPlayer.playVideo();
 }
 
 function next() {
@@ -428,8 +407,8 @@ function next() {
 }
 
 function prev() {
-  if (!cur || !audio) return;
-  if (audio.currentTime > 3) { audio.currentTime = 0; return; }
+  if (!cur || !ytReady) return;
+  if (ytPlayer.getCurrentTime() > 3) { ytPlayer.seekTo(0,true); return; }
   qIdx = (qIdx - 1 + queue.length) % queue.length;
   playSong(queue[qIdx]);
 }
@@ -439,13 +418,13 @@ function restartCurrent() {
 }
 
 function seek(e) {
-  if (!audio || !audio.duration) return;
+  if (!ytReady || !cur) return;
   const bar = document.getElementById('prog-bar');
   const pct = (e.clientX - bar.getBoundingClientRect().left) / bar.offsetWidth;
-  audio.currentTime = pct * audio.duration;
+  ytPlayer.seekTo(pct * ytPlayer.getDuration(), true);
 }
 
-function setVol(v) { if (audio) audio.volume = parseInt(v) / 100; }
+function setVol(v) { if (ytReady) ytPlayer.setVolume(parseInt(v)); }
 function toggleShuf() { isShuffle = !isShuffle; document.getElementById('shuf-btn').classList.toggle('on', isShuffle); }
 function toggleRep()  { isRepeat  = !isRepeat;  document.getElementById('rep-btn').classList.toggle('on', isRepeat); }
 function openFP()  { document.getElementById('full-p').classList.add('open'); }
@@ -457,14 +436,16 @@ function closeFP() { document.getElementById('full-p').classList.remove('open');
 function startProgLoop() {
   stopProgLoop();
   progLoop = setInterval(() => {
-    if (!audio || !cur) return;
-    const pos = audio.currentTime || 0;
-    const dur = audio.duration || 0;
-    if (dur > 0) {
-      document.getElementById('prog-fill').style.width = ((pos / dur) * 100) + '%';
-      document.getElementById('t-cur').textContent = fmtTime(pos);
-      document.getElementById('t-tot').textContent = fmtTime(dur);
-    }
+    if (!ytReady || !cur) return;
+    try {
+      const pos = ytPlayer.getCurrentTime() || 0;
+      const dur = ytPlayer.getDuration() || 0;
+      if (dur > 0) {
+        document.getElementById('prog-fill').style.width = ((pos / dur) * 100) + '%';
+        document.getElementById('t-cur').textContent = fmtTime(pos);
+        document.getElementById('t-tot').textContent = fmtTime(dur);
+      }
+    } catch(e) {}
   }, 500);
 }
 function stopProgLoop() { if (progLoop) { clearInterval(progLoop); progLoop = null; } }
@@ -687,5 +668,6 @@ function toast(msg) {
 // ═══════════════════════════════════════
 loadHome();
 </script>
+<script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>

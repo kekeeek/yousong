@@ -270,13 +270,29 @@ const INVIDIOUS = [
 ];
 let invIdx = 0;
 
+// Proxies CORS publics pour contourner les restrictions
+const CORS_PX = [
+  'https://corsproxy.io/?url=',
+  'https://api.allorigins.win/raw?url=',
+  'https://proxy.cors.sh/',
+];
+
 async function invGet(path) {
   for (let i = 0; i < INVIDIOUS.length; i++) {
     const base = INVIDIOUS[(invIdx + i) % INVIDIOUS.length];
+    const url = base + path;
+    // Essai direct d'abord
     try {
-      const r = await fetch(base + path, { signal: AbortSignal.timeout(6000) });
+      const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
       if (r.ok) { invIdx = (invIdx + i) % INVIDIOUS.length; return await r.json(); }
-    } catch(e) { continue; }
+    } catch(e) {}
+    // Sinon via proxy CORS
+    for (const px of CORS_PX) {
+      try {
+        const r = await fetch(px + encodeURIComponent(url), { signal: AbortSignal.timeout(7000) });
+        if (r.ok) { invIdx = (invIdx + i) % INVIDIOUS.length; return await r.json(); }
+      } catch(e) { continue; }
+    }
   }
   return null;
 }

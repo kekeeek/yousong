@@ -257,127 +257,86 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
 //  = ZERO pub car pas d'iframe YouTube
 // ═══════════════════════════════════════
 // ═══════════════════════════════════════
-//  YOUTUBE DATA API v3
-//  - Recherche intelligente (catégorie music)
-//  - Filtre vidéos clips/lives automatique
-//  - Lecture via iframe nocookie (moins de pubs)
+//  INVIDIOUS — YouTube sans pubs, CORS ouvert
+//  Plusieurs instances en rotation
 // ═══════════════════════════════════════
-const YT_KEY = 'AIzaSyCkjiL7fFuQXIiW8R5AsmyqK_CNkYLvv70';
-let ytPlayer = null, ytReady = false, pendingVid = null;
+const INVIDIOUS = [
+  'https://inv.nadeko.net',
+  'https://invidious.privacydev.net',
+  'https://yt.cdaut.de',
+  'https://invidious.nerdvpn.de',
+  'https://invidious.io.lol',
+];
+let invIdx = 0;
 
-function onYouTubeIframeAPIReady() {
-  ytPlayer = new YT.Player('yt-player', {
-    height:'1', width:'1',
-    host:'https://www.youtube-nocookie.com',
-    playerVars:{ autoplay:0, controls:0, disablekb:1, fs:0, iv_load_policy:3, rel:0, modestbranding:1 },
-    events:{
-      onReady:()=>{
-        ytReady=true;
-        ytPlayer.setVolume(parseInt(document.getElementById('vol-r').value));
-        if(pendingVid){ytPlayer.loadVideoById(pendingVid);pendingVid=null;}
-      },
-      onStateChange:(e)=>{
-        if(e.data===YT.PlayerState.PLAYING){isPlaying=true;updIcons();updRows();startProgLoop();}
-        else if(e.data===YT.PlayerState.PAUSED){isPlaying=false;updIcons();updRows();stopProgLoop();}
-        else if(e.data===YT.PlayerState.BUFFERING){/* laisser bufferer sans changer état */}
-        else if(e.data===YT.PlayerState.ENDED){stopProgLoop();if(isRepeat){ytPlayer.seekTo(0,true);ytPlayer.playVideo();}else next();}
-      },
-      onError:(e)=>{ 
-        // Codes 5=HTML5, 100=introuvable, 101/150=embed interdit
-        if(e.data===100||e.data===101||e.data===150){ toast('⏭️ Titre suivant...'); setTimeout(next,800); }
-      }
-    }
-  });
-}
-
-// Mots clés à filtrer pour ne garder que l'audio
-const FILTER_OUT = ['live','concert','session','interview','karaoke','instrumental','cover','remix','reaction','performance','clip officiel','music video','mv','vevo'];
-
-function isAudioTrack(title) {
-  const t = title.toLowerCase();
-  // Garder si contient audio, lyrics, officiel
-  if (t.includes('audio') || t.includes('lyrics') || t.includes('paroles')) return true;
-  // Rejeter si contient des mots de vidéo/live
-  for (const w of FILTER_OUT) { if (t.includes(w)) return false; }
-  return true;
+async function invGet(path) {
+  for (let i = 0; i < INVIDIOUS.length; i++) {
+    const base = INVIDIOUS[(invIdx + i) % INVIDIOUS.length];
+    try {
+      const r = await fetch(base + path, { signal: AbortSignal.timeout(6000) });
+      if (r.ok) { invIdx = (invIdx + i) % INVIDIOUS.length; return await r.json(); }
+    } catch(e) { continue; }
+  }
+  return null;
 }
 
 async function searchAudiomack(q, limit = 20) {
-  // Ajouter "audio" pour orienter vers les audios plutôt que clips
-  const query = q + ' audio';
-  try {
-    const r = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&maxResults=${Math.min(limit*2,50)}&key=${YT_KEY}`,
-      { signal: AbortSignal.timeout(8000) }
-    );
-    if (!r.ok) throw new Error('yt error ' + r.status);
-    const d = await r.json();
-    if (!d.items?.length) throw new Error('empty');
-    
-    // Filtrer pour ne garder que les audios
-    const filtered = d.items
-      .filter(i => isAudioTrack(i.snippet.title))
-      .slice(0, limit);
-    
-    // Si pas assez de résultats après filtrage, prendre tous
-    const items = filtered.length >= 3 ? filtered : d.items.slice(0, limit);
-    
-    return items.map(i => ({
-      trackId: i.id.videoId,
-      trackName: cleanTitle(i.snippet.title),
-      artistName: i.snippet.channelTitle.replace(/VEVO|Official|Music|Records|vevo/gi,'').trim() || '—',
-      artworkUrl100: i.snippet.thumbnails?.medium?.url || '',
-      artworkUrl600: i.snippet.thumbnails?.high?.url || '',
-      trackTimeMillis: 0,
-      _src: 'yt'
-    }));
-  } catch(e) {
-    // Fallback iTunes si quota dépassé
-    try {
-      const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=${limit}&country=fr`);
-      const d = await r.json();
-      return (d.results||[]).filter(t=>t.trackName).map(t=>({
-        trackId: 'it_'+t.trackId,
-        trackName: t.trackName,
-        artistName: t.artistName||'—',
-        artworkUrl100: t.artworkUrl100||'',
-        artworkUrl600: (t.artworkUrl100||'').replace('100x100','600x600'),
-        trackTimeMillis: t.trackTimeMillis||0,
-        _src:'itunes'
+  // Recherche Invidious — filtre musique uniquement
+  const d = await invGet(`/api/v1/search?q=${encodeURIComponent(q + ' audio')}&type=video&sort_by=relevance`);
+  if (d && d.length) {
+    const filtered = d
+      .filter(v => {
+        const t = v.title.toLowerCase();
+        // Exclure lives, clips vidéo, interviews
+        return !t.includes('live') && !t.includes('concert') && !t.includes('interview') && !t.includes('karaoke') && v.lengthSeconds > 60 && v.lengthSeconds < 600;
+      })
+      .slice(0, limit)
+      .map(v => ({
+        trackId: v.videoId,
+        trackName: v.title.replace(/\(official\s*(audio|video|music video)?\)/gi,'').replace(/\[official.*?\]/gi,'').replace(/official audio/gi,'').trim(),
+        artistName: v.author || '—',
+        artworkUrl100: v.videoThumbnails?.find(t=>t.quality==='medium')?.url || v.videoThumbnails?.[0]?.url || '',
+        artworkUrl600: v.videoThumbnails?.find(t=>t.quality==='maxres')?.url || v.videoThumbnails?.[0]?.url || '',
+        trackTimeMillis: (v.lengthSeconds || 0) * 1000,
+        _src: 'inv'
       }));
-    } catch(e2){ return []; }
+    if (filtered.length) return filtered;
   }
-}
-
-function cleanTitle(t) {
-  // Nettoyer les titres YouTube : enlever "(Official Audio)", "[Official]" etc
-  return t
-    .replace(/\(official\s*(audio|video|music video|lyric video|lyrics)?\)/gi,'')
-    .replace(/\[official\s*(audio|video)?\]/gi,'')
-    .replace(/official\s*(audio|video)/gi,'')
-    .replace(/\(audio\)/gi,'')
-    .replace(/\|.*$/,'') // enlever tout après |
-    .replace(/ft\.|feat\./gi,'ft.')
-    .trim();
+  // Fallback iTunes
+  try {
+    const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=${limit}&country=fr`);
+    const d = await r.json();
+    return (d.results||[]).filter(t=>t.trackName).map(t=>({
+      trackId:'it_'+t.trackId, trackName:t.trackName,
+      artistName:t.artistName||'—',
+      artworkUrl100:t.artworkUrl100||'',
+      artworkUrl600:(t.artworkUrl100||'').replace('100x100','600x600'),
+      trackTimeMillis:t.trackTimeMillis||0, _src:'itunes'
+    }));
+  } catch(e){ return []; }
 }
 
 async function getAudiomackStream(song) {
   let videoId = song.trackId;
-  
-  // Si iTunes → trouver la vidéo YT
+
+  // Si iTunes → chercher sur Invidious
   if (song._src === 'itunes') {
-    try {
-      const r = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(song.trackName+' '+song.artistName+' audio')}&type=video&videoCategoryId=10&maxResults=3&key=${YT_KEY}`
-      );
-      const d = await r.json();
-      if (!d.items?.length) return null;
-      // Prendre le premier résultat audio
-      const audioItem = d.items.find(i=>isAudioTrack(i.snippet.title)) || d.items[0];
-      videoId = audioItem.id.videoId;
-    } catch(e) { return null; }
+    const d = await invGet(`/api/v1/search?q=${encodeURIComponent(song.trackName+' '+song.artistName+' audio')}&type=video`);
+    if (!d || !d.length) return null;
+    videoId = d[0].videoId;
   }
-  return videoId;
+
+  // Récupérer les URLs audio via Invidious
+  const d = await invGet(`/api/v1/videos/${videoId}`);
+  if (!d || !d.adaptiveFormats) return null;
+
+  // Prendre le meilleur format audio (opus ou aac)
+  const audioFormats = d.adaptiveFormats
+    .filter(f => f.type && f.type.includes('audio'))
+    .sort((a,b) => (b.bitrate||0) - (a.bitrate||0));
+
+  if (!audioFormats.length) return null;
+  return audioFormats[0].url || null;
 }
 
 async function itunesCover(title, artist) {
@@ -435,15 +394,14 @@ function playUrl(url) {
 }
 
 function stopAudio() {
-  if (ytReady && ytPlayer) { try { ytPlayer.stopVideo(); } catch(e){} }
   if (audio) { audio.pause(); audio.src = ''; audio = null; }
   stopProgLoop();
   isPlaying = false;
 }
 
 function togglePlay() {
-  if (!cur || !ytReady) return;
-  if (isPlaying) ytPlayer.pauseVideo(); else ytPlayer.playVideo();
+  if (!cur || !audio) return;
+  if (isPlaying) audio.pause(); else audio.play();
 }
 
 function next() {
@@ -453,8 +411,8 @@ function next() {
 }
 
 function prev() {
-  if (!cur || !ytReady) return;
-  if (ytPlayer.getCurrentTime() > 3) { ytPlayer.seekTo(0,true); return; }
+  if (!cur || !audio) return;
+  if (audio.currentTime > 3) { audio.currentTime = 0; return; }
   qIdx = (qIdx - 1 + queue.length) % queue.length;
   playSong(queue[qIdx]);
 }
@@ -464,13 +422,13 @@ function restartCurrent() {
 }
 
 function seek(e) {
-  if (!ytReady || !cur) return;
+  if (!audio || !audio.duration) return;
   const bar = document.getElementById('prog-bar');
   const pct = (e.clientX - bar.getBoundingClientRect().left) / bar.offsetWidth;
-  ytPlayer.seekTo(pct * ytPlayer.getDuration(), true);
+  audio.currentTime = pct * audio.duration;
 }
 
-function setVol(v) { if (ytReady) ytPlayer.setVolume(parseInt(v)); }
+function setVol(v) { if (audio) audio.volume = parseInt(v) / 100; }
 function toggleShuf() { isShuffle = !isShuffle; document.getElementById('shuf-btn').classList.toggle('on', isShuffle); }
 function toggleRep()  { isRepeat  = !isRepeat;  document.getElementById('rep-btn').classList.toggle('on', isRepeat); }
 function openFP()  { document.getElementById('full-p').classList.add('open'); }
@@ -482,16 +440,14 @@ function closeFP() { document.getElementById('full-p').classList.remove('open');
 function startProgLoop() {
   stopProgLoop();
   progLoop = setInterval(() => {
-    if (!ytReady || !cur) return;
-    try {
-      const pos = ytPlayer.getCurrentTime() || 0;
-      const dur = ytPlayer.getDuration() || 0;
-      if (dur > 0) {
-        document.getElementById('prog-fill').style.width = ((pos / dur) * 100) + '%';
-        document.getElementById('t-cur').textContent = fmtTime(pos);
-        document.getElementById('t-tot').textContent = fmtTime(dur);
-      }
-    } catch(e) {}
+    if (!audio || !cur) return;
+    const pos = audio.currentTime || 0;
+    const dur = audio.duration || 0;
+    if (dur > 0) {
+      document.getElementById('prog-fill').style.width = ((pos / dur) * 100) + '%';
+      document.getElementById('t-cur').textContent = fmtTime(pos);
+      document.getElementById('t-tot').textContent = fmtTime(dur);
+    }
   }, 500);
 }
 function stopProgLoop() { if (progLoop) { clearInterval(progLoop); progLoop = null; } }
@@ -714,6 +670,5 @@ function toast(msg) {
 // ═══════════════════════════════════════
 loadHome();
 </script>
-<script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>

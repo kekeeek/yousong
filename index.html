@@ -151,8 +151,6 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
           <button class="gpill" style="background:linear-gradient(135deg,#5c6bc0,#3949ab)" onclick="sg('drill')">🔊 Drill</button>
           <button class="gpill" style="background:linear-gradient(135deg,#f4511e,#bf360c)" onclick="sg('reggaeton')">🌴 Latino</button>
         </div>
-        <div class="sec" style="margin-top:22px"><div class="sec-t">🕐 Récemment écouté</div></div>
-        <div class="sec" style="padding-top:0"><div class="slist" id="history-list"></div></div>
         <div class="sec" style="margin-top:22px"><div class="sec-t">🔥 Tendances</div></div>
         <div class="hscroll" id="trending"></div>
         <div class="sec" style="margin-top:22px"><div class="sec-t">⚡ Découverte</div></div>
@@ -238,62 +236,14 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
 <script>
 'use strict';
 
-// ══ CONFIG — 9 clés en rotation ══
-const YT_KEYS = [
-  'AIzaSyBqUFkyqKEzAWDstqAdY4_plEV3Fvr9LZg',
-  'AIzaSyABisaK8gmGtKwT04k9A8_HMcJpyhxecIo',
-  'AIzaSyASOkDeyx0yXJhGZ_dEXUAV04w8yYJWmeA',
-  'AIzaSyD5E-E6rQ2rzhqUPtCna52R_OVB-qbmRHk',
-  'AIzaSyDAhZRr6Ap9KhO3c1W8c2YiRrSu-Kn2JHA',
-  'AIzaSyC1Yo9VxatGF6XtYeaTKEXOcvKIaE8YU88',
-  'AIzaSyCcKxYrS-f5A7sMuha_OJClPMxKIfyE8iQ',
-  'AIzaSyBQY2DY3VrhOrFeOsKdovtyhnyDc18cgQk',
-  'AIzaSyCkjiL7fFuQXIiW8R5AsmyqK_CNkYLvv70',
-];
-let ytKeyIdx = parseInt(localStorage.getItem('ys_key_idx') || '0') % YT_KEYS.length;
-
-async function ytFetch(url) {
-  for (let i = 0; i < YT_KEYS.length; i++) {
-    const idx = (ytKeyIdx + i) % YT_KEYS.length;
-    try {
-      const r = await fetch(url + '&key=' + YT_KEYS[idx], { signal: AbortSignal.timeout(8000) });
-      const d = await r.json();
-      if (d.error?.code === 403 || d.error?.code === 429) continue;
-      ytKeyIdx = idx;
-      localStorage.setItem('ys_key_idx', String(idx));
-      return d;
-    } catch(e) { continue; }
-  }
-  return null;
-}
+// ══ CONFIG ══
+const YT_KEY = 'AIzaSyCkjiL7fFuQXIiW8R5AsmyqK_CNkYLvv70';
 
 // ══ ÉTAT ══
 let queue = [], qIdx = 0, cur = null;
 let isPlaying = false, isShuffle = false, isRepeat = false;
 let liked = JSON.parse(localStorage.getItem('ys_liked') || '[]');
-let history = JSON.parse(localStorage.getItem('ys_history') || '[]');
 let srchTimer = null, progLoop = null;
-
-function saveSession() {
-  if (!cur) return;
-  localStorage.setItem('ys_session', JSON.stringify({ cur, queue, qIdx }));
-}
-function restoreSession() {
-  try {
-    const s = JSON.parse(localStorage.getItem('ys_session') || 'null');
-    if (!s?.cur) return;
-    cur = s.cur; queue = s.queue || []; qIdx = s.qIdx || 0;
-    updateMini(); updateFull();
-    document.getElementById('mini-p').classList.add('show');
-  } catch(e) {}
-}
-function renderHistory() {
-  const el = document.getElementById('history-list');
-  if (!el) return;
-  if (!history.length) { el.innerHTML = ''; return; }
-  el.innerHTML = '';
-  history.slice(0, 10).forEach((s, i) => el.appendChild(mkRow(s, i, history)));
-}
 
 // ══ YOUTUBE PLAYER ══
 let ytPlayer = null, ytReady = false, pendingVid = null;
@@ -319,11 +269,9 @@ function onYouTubeIframeAPIReady() {
         } else if (s === 0) { // ENDED
           isPlaying = false; updIcons(); stopProgLoop();
           if (isRepeat) { ytPlayer.seekTo(0); ytPlayer.playVideo(); } else next();
-        } else if (s === -1 || s === 5) { // UNSTARTED ou CUED → forcer play
-          ytPlayer.playVideo();
         }
       },
-      onError: () => { toast('⏭️ Suivant...'); setTimeout(next, 800); }
+      onError: (e) => { toast('❌ Vidéo non disponible (erreur ' + e.data + ')'); }
     }
   });
 }
@@ -333,51 +281,91 @@ function loadAndPlay(vid) {
   ytPlayer.loadVideoById(vid);
 }
 
-// ══ RECHERCHE YOUTUBE (Official Audio = pas de pubs) ══
+// ══ RECHERCHE — YouTube en priorité + iTunes en bonus ══
 async function searchSongs(q, limit = 20) {
+  const results = [];
+
+  // 1. YouTube EN PRIORITÉ — trouve tout (clips, exclu, albums, sons)
   try {
-    const d = await ytFetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q + ' audio')}&type=video&videoCategoryId=10&maxResults=30`
+    const r = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&maxResults=25&key=${YT_KEY}`,
+      { signal: AbortSignal.timeout(8000) }
     );
-    if (!d?.items?.length) return [];
+    const d = await r.json();
+    if (d.items?.length) {
+      const ids = d.items.map(i => i.id.videoId).join(',');
+      const r2 = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${ids}&key=${YT_KEY}`,
+        { signal: AbortSignal.timeout(8000) }
+      );
+      const d2 = await r2.json();
+      const ytSongs = (d2.items || [])
+        .map(v => {
+          const dur = v.contentDetails.duration;
+          const m = dur.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+          const secs = (parseInt(m?.[1]||0)*3600) + (parseInt(m?.[2]||0)*60) + parseInt(m?.[3]||0);
+          const thumb = v.snippet.thumbnails?.high?.url || v.snippet.thumbnails?.medium?.url || '';
+          return { secs, v, thumb };
+        })
+        .filter(({ secs }) => secs > 30 && secs <= 660)
+        .map(({ v, thumb, secs }) => ({
+          trackId: v.id,
+          trackName: v.snippet.title,
+          artistName: v.snippet.channelTitle.replace(/\s*(VEVO|Official|Music|Records|Topic)\s*/gi,'').trim() || '—',
+          artworkUrl100: thumb,
+          artworkUrl600: thumb,
+          trackTimeMillis: secs * 1000,
+        }));
+      results.push(...ytSongs);
+    }
+  } catch(e) {}
 
-    const ids = d.items.map(i => i.id.videoId).join(',');
-    const d2 = await ytFetch(
-      `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${ids}`
+  // 2. iTunes en complément — covers propres, catalogue officiel
+  try {
+    const r = await fetch(
+      `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=10&country=fr`,
+      { signal: AbortSignal.timeout(8000) }
     );
+    const d = await r.json();
+    const itunes = (d.results || []).filter(t => t.trackName).map(t => ({
+      trackId: 'it_' + t.trackId,
+      trackName: t.trackName,
+      artistName: t.artistName || '—',
+      artworkUrl100: t.artworkUrl100 || '',
+      artworkUrl600: (t.artworkUrl100 || '').replace('100x100', '600x600'),
+      trackTimeMillis: t.trackTimeMillis || 0,
+    }));
+    results.push(...itunes);
+  } catch(e) {}
 
-    return (d2?.items || [])
-      .map(v => {
-        const m = v.contentDetails.duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-        const secs = (parseInt(m?.[1]||0)*3600) + (parseInt(m?.[2]||0)*60) + parseInt(m?.[3]||0);
-        const thumb = v.snippet.thumbnails?.high?.url || v.snippet.thumbnails?.medium?.url || '';
-        return { secs, v, thumb };
-      })
-      .filter(({ secs }) => secs > 30 && secs <= 660)
-      .map(({ v, thumb, secs }) => ({
-        trackId: v.id,
-        trackName: v.snippet.title
-          .replace(/\(official\s*(audio|video)?\)/gi,'')
-          .replace(/official\s*audio/gi,'')
-          .replace(/\s+/g,' ').trim(),
-        artistName: v.snippet.channelTitle.replace(/\s*(VEVO|Official|Music|Records|Topic)\s*/gi,'').trim() || '—',
-        artworkUrl100: thumb,
-        artworkUrl600: thumb,
-        trackTimeMillis: secs * 1000,
-      }))
-      .slice(0, limit);
-  } catch(e) { return []; }
+  // Dédupliquer par titre
+  const seen = new Set();
+  return results.filter(s => {
+    const k = (s.trackName || '').toLowerCase().replace(/\s/g,'').substring(0,15);
+    if (seen.has(k)) return false;
+    seen.add(k); return true;
+  }).slice(0, limit);
 }
 
 // ══ TROUVER VIDEO YOUTUBE ══
+// Si le trackId est déjà un videoId YT (vient de YT Music), l'utiliser direct
+// Sinon chercher via l'API YT Data
 async function findYTVideo(title, artist, existingId) {
-  // Si l'ID vient déjà de YouTube, l'utiliser direct
+  // Si le trackId vient de YouTube Music, l'utiliser directement
   if (existingId && !existingId.startsWith('it_')) return existingId;
+
   try {
-    const d = await ytFetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(title+' '+artist+' audio')}&type=video&videoCategoryId=10&maxResults=1`
+    const q = title + ' ' + artist;
+    // Cherche sans aucun filtre de catégorie = trouve sons ET clips ET vidéos
+    const r = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&maxResults=10&key=${YT_KEY}`,
+      { signal: AbortSignal.timeout(8000) }
     );
-    return d?.items?.[0]?.id?.videoId || null;
+    const d = await r.json();
+    if (!d.items?.length) return null;
+
+    // Prendre direct le premier résultat, pas de filtre supplémentaire
+    return d.items[0].id.videoId;
   } catch(e) { return null; }
 }
 
@@ -397,10 +385,6 @@ async function playSong(s) {
     pendingVid = vid;
   }
   toast('▶️ ' + esc(s.trackName));
-  saveSession();
-  history = [s, ...history.filter(h => h.trackId !== s.trackId)].slice(0, 50);
-  localStorage.setItem('ys_history', JSON.stringify(history));
-  renderHistory();
 }
 
 // CORRIGÉ : se baser sur l'état réel du player, pas sur isPlaying
@@ -650,9 +634,7 @@ function toast(msg) {
 }
 
 // ══ INIT ══
-restoreSession();
 loadHome();
-renderHistory();
 </script>
 <script src="https://www.youtube.com/iframe_api"></script>
 </body>

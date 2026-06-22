@@ -237,6 +237,7 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
 'use strict';
 
 // ══ CONFIG ══
+const WORKER = 'https://flat-firefly-a345.adkip0.workers.dev';
 const YT_KEYS = [
   'AIzaSyBqUFkyqKEzAWDstqAdY4_plEV3Fvr9LZg',
   'AIzaSyABisaK8gmGtKwT04k9A8_HMcJpyhxecIo',
@@ -425,13 +426,20 @@ function prev() {
 }
 
 function seek(e) {
-  if (!ytReady || !cur) return;
+  if (!cur) return;
   const bar = document.getElementById('prog-bar');
   const pct = (e.clientX - bar.getBoundingClientRect().left) / bar.offsetWidth;
-  ytPlayer.seekTo(pct * ytPlayer.getDuration(), true);
+  if (window._ysAudio && window._ysAudio.src && window._ysAudio.duration) {
+    window._ysAudio.currentTime = pct * window._ysAudio.duration;
+  } else if (ytReady) {
+    ytPlayer.seekTo(pct * ytPlayer.getDuration(), true);
+  }
 }
 
-function setVol(v) { if (ytReady) ytPlayer.setVolume(parseInt(v)); }
+function setVol(v) {
+  if (window._ysAudio) window._ysAudio.volume = parseInt(v) / 100;
+  if (ytReady) ytPlayer.setVolume(parseInt(v));
+}
 function toggleShuf() { isShuffle = !isShuffle; document.getElementById('shuf-btn').classList.toggle('on', isShuffle); }
 function toggleRep() { isRepeat = !isRepeat; document.getElementById('rep-btn').classList.toggle('on', isRepeat); }
 function openFP() { document.getElementById('full-p').classList.add('open'); }
@@ -441,10 +449,16 @@ function closeFP() { document.getElementById('full-p').classList.remove('open');
 function startProgLoop() {
   stopProgLoop();
   progLoop = setInterval(() => {
-    if (!ytReady || !cur) return;
+    if (!cur) return;
     try {
-      const pos = ytPlayer.getCurrentTime() || 0;
-      const dur = ytPlayer.getDuration() || 0;
+      let pos = 0, dur = 0;
+      if (window._ysAudio && window._ysAudio.src) {
+        pos = window._ysAudio.currentTime || 0;
+        dur = window._ysAudio.duration || 0;
+      } else if (ytReady) {
+        pos = ytPlayer.getCurrentTime() || 0;
+        dur = ytPlayer.getDuration() || 0;
+      }
       if (dur > 0) {
         document.getElementById('prog-fill').style.width = ((pos / dur) * 100) + '%';
         document.getElementById('t-cur').textContent = fmtTime(pos);

@@ -265,7 +265,8 @@ let ytPlayer = null, ytReady = false, pendingVid = null;
 function onYouTubeIframeAPIReady() {
   ytPlayer = new YT.Player('yt-player', {
     height: '200', width: '200',
-    playerVars: { autoplay: 1, controls: 0, disablekb: 1, fs: 0, iv_load_policy: 3, rel: 0, modestbranding: 1, playsinline: 1 },
+    host: 'https://www.youtube-nocookie.com',
+    playerVars: { autoplay: 1, controls: 0, disablekb: 1, fs: 0, iv_load_policy: 3, rel: 0, modestbranding: 1, playsinline: 1, origin: location.origin },
     events: {
       onReady: (e) => {
         ytReady = true;
@@ -292,7 +293,7 @@ function onYouTubeIframeAPIReady() {
 
 // CORRIGÉ : ne plus toucher isPlaying ici, laisser onStateChange gérer
 function loadAndPlay(vid) {
-  ytPlayer.loadVideoById(vid);
+  ytPlayer.loadVideoById({ videoId: vid, startSeconds: 0 });
 }
 
 // ══ RECHERCHE — YouTube en priorité + iTunes en bonus ══

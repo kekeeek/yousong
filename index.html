@@ -237,7 +237,20 @@ input[type=range].vol::-webkit-slider-thumb{-webkit-appearance:none;width:14px;h
 'use strict';
 
 // ══ CONFIG ══
-const YT_KEY = 'AIzaSyCkjiL7fFuQXIiW8R5AsmyqK_CNkYLvv70';
+const YT_KEYS = [
+  'AIzaSyBqUFkyqKEzAWDstqAdY4_plEV3Fvr9LZg',
+  'AIzaSyABisaK8gmGtKwT04k9A8_HMcJpyhxecIo',
+  'AIzaSyASOkDeyx0yXJhGZ_dEXUAV04w8yYJWmeA',
+  'AIzaSyD5E-E6rQ2rzhqUPtCna52R_OVB-qbmRHk',
+  'AIzaSyDAhZRr6Ap9KhO3c1W8c2YiRrSu-Kn2JHA',
+  'AIzaSyC1Yo9VxatGF6XtYeaTKEXOcvKIaE8YU88',
+  'AIzaSyCcKxYrS-f5A7sMuha_OJClPMxKIfyE8iQ',
+  'AIzaSyBQY2DY3VrhOrFeOsKdovtyhnyDc18cgQk',
+  'AIzaSyCkjiL7fFuQXIiW8R5AsmyqK_CNkYLvv70',
+];
+let _ytKeyIdx = parseInt(localStorage.getItem('ys_kid')||'0') % YT_KEYS.length;
+function getYTKey() { return YT_KEYS[_ytKeyIdx]; }
+function nextYTKey() { _ytKeyIdx = (_ytKeyIdx+1) % YT_KEYS.length; localStorage.setItem('ys_kid', _ytKeyIdx); }
 
 // ══ ÉTAT ══
 let queue = [], qIdx = 0, cur = null;
@@ -358,7 +371,7 @@ async function findYTVideo(title, artist, existingId) {
     const q = title + ' ' + artist;
     // Cherche sans aucun filtre de catégorie = trouve sons ET clips ET vidéos
     const r = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&maxResults=10&key=${YT_KEY}`,
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&maxResults=10&key=${getYTKey()}`,
       { signal: AbortSignal.timeout(8000) }
     );
     const d = await r.json();

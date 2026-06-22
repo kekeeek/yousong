@@ -248,9 +248,9 @@ const YT_KEYS = [
   'AIzaSyBQY2DY3VrhOrFeOsKdovtyhnyDc18cgQk',
   'AIzaSyCkjiL7fFuQXIiW8R5AsmyqK_CNkYLvv70',
 ];
-let _ytKeyIdx = parseInt(localStorage.getItem('ys_kid')||'0') % YT_KEYS.length;
-function getYTKey() { return YT_KEYS[_ytKeyIdx]; }
-function nextYTKey() { _ytKeyIdx = (_ytKeyIdx+1) % YT_KEYS.length; localStorage.setItem('ys_kid', _ytKeyIdx); }
+let _ki = parseInt(localStorage.getItem('ys_ki')||'0') % YT_KEYS.length;
+function getK() { return YT_KEYS[_ki]; }
+function nextK() { _ki=(_ki+1)%YT_KEYS.length; localStorage.setItem('ys_ki',_ki); }
 
 // ══ ÉTAT ══
 let queue = [], qIdx = 0, cur = null;
@@ -301,14 +301,14 @@ async function searchSongs(q, limit = 20) {
   // 1. YouTube EN PRIORITÉ — trouve tout (clips, exclu, albums, sons)
   try {
     const r = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&maxResults=25&key=${YT_KEY}`,
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&maxResults=25&key=${getK()}`,
       { signal: AbortSignal.timeout(8000) }
     );
     const d = await r.json();
     if (d.items?.length) {
       const ids = d.items.map(i => i.id.videoId).join(',');
       const r2 = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${ids}&key=${YT_KEY}`,
+        `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${ids}&key=${getK()}`,
         { signal: AbortSignal.timeout(8000) }
       );
       const d2 = await r2.json();
@@ -371,7 +371,7 @@ async function findYTVideo(title, artist, existingId) {
     const q = title + ' ' + artist;
     // Cherche sans aucun filtre de catégorie = trouve sons ET clips ET vidéos
     const r = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&maxResults=10&key=${getYTKey()}`,
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&maxResults=10&key=${getK()}`,
       { signal: AbortSignal.timeout(8000) }
     );
     const d = await r.json();
